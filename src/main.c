@@ -33,6 +33,7 @@ typedef struct POINT {
     int ownership;
 } POINT;
 
+
 int bad_distance(POINT first, POINT second) {
     if (((int) (sqrt(pow(first.x - second.x, 2) + pow(first.y - second.y, 2)))) < (first.r + second.r))
         return 1;
@@ -94,7 +95,7 @@ bool init(APP *app) {
         printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
         return false;
     }
-    app->window = SDL_CreateWindow("state.at", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH,
+    app->window = SDL_CreateWindow("state.SAT", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH,
                                    SCREEN_HEIGHT,
                                    SDL_WINDOW_OPENGL);
     if (app->window == NULL) {
@@ -129,6 +130,11 @@ int witch_point(int x, int y, POINT *array, int number_of_points) {
     return -1;
 }
 
+void move(APP *app, POINT *array, int moving_points[]) {
+//    array[moving_points[0]]
+}
+
+
 int main() {
     APP *app = calloc(1, sizeof(APP));
     SDL_Event event;
@@ -157,19 +163,20 @@ int main() {
                 break;
 
             case SDL_MOUSEBUTTONDOWN:
-                if (event.button.button == SDL_BUTTON_LEFT) {
+                if (event.button.button == SDL_BUTTON_LEFT && starting_point == -1) {
                     int point_number = witch_point(event.button.x, event.button.y, array, number_of_points);
-                    if (array[point_number].ownership == 1)
+                    if (array[point_number].ownership == 1) {
+                        printf("button down\n");
                         starting_point = point_number;
-                    else
-                        starting_point = -1;
+                    }
                 }
                 break;
 
             case SDL_MOUSEBUTTONUP:
-                if (event.button.button == SDL_BUTTON_LEFT) {
+                if (event.button.button == SDL_BUTTON_LEFT && starting_point != -1) {
                     int ending_point = witch_point(event.button.x, event.button.y, array, number_of_points);
-                    if (ending_point != -1 && starting_point != -1) {
+                    if (ending_point != -1) {
+                        printf("button up\n");
                         array[ending_point].ownership = 1;
                     }
                 }
@@ -180,7 +187,8 @@ int main() {
 
 
         //TODO rendering code goes here
-
+        int moving_points[] = {0, 7};
+        move(app, array, moving_points);
         // render window
 //        SDL_RenderClear(app->renderer);
 //        SDL_SetRenderDrawColor(app->renderer, 252, 255, 217, 255);
