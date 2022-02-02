@@ -12,7 +12,8 @@
 
 #define max_land_size  80
 #define min_land_size  50
-
+#define ATTACK_LIMIT    10
+#define DARK_PURPLE 0xaa702666
 
 const int FPS = 60;
 const int section = 50;
@@ -38,8 +39,8 @@ typedef struct SOLDIER {
     int start_y;
     int x;
     int y;
-    int dis_x;
-    int dis_y;
+    int des_x;
+    int des_y;
     int ownership;
     int launch_counter;
     int killed;
@@ -75,25 +76,26 @@ int generate_random_map(POINT array[15], APP *app) {
     for (int i = 0; i < number_of_points; i++) {
         array[i].x = random_between(max_land_size, SCREEN_WIDTH - max_land_size);
         array[i].y = random_between(max_land_size, SCREEN_HEIGHT - max_land_size);
-        array[i].r = min_land_size + rand() % (max_land_size - min_land_size);
+        array[i].r = random_between(min_land_size, max_land_size);
         int j = 0;
         int number_of_fails_to_generate = 0;
         while (j < i) {
             if (bad_distance(array[i], array[j])) {
-                array[i].x = random_between(max_land_size, SCREEN_WIDTH - max_land_size);
-                array[i].y = random_between(max_land_size, SCREEN_HEIGHT - max_land_size);
-                array[i].r = min_land_size + rand() % (max_land_size - min_land_size);
                 number_of_fails_to_generate++;
                 j = 0;
+                //generate another one:
+                array[i].x = random_between(max_land_size, SCREEN_WIDTH - max_land_size);
+                array[i].y = random_between(max_land_size, SCREEN_HEIGHT - max_land_size);
+                array[i].r = random_between(min_land_size, max_land_size);
                 if (number_of_fails_to_generate > 100) {
                     //we can not generate more states :(
                     number_of_points = i + 1;
                     break;
                 }
-                continue;
+            } else {
+                number_of_fails_to_generate = 0;
+                j++;
             }
-            number_of_fails_to_generate = 0;
-            j++;
         }
     }
     array[0].ownership = 1;
@@ -148,60 +150,69 @@ int line_between_start_end(int x, float a, int xf, int yf) {
     return (int) (a * (float) xf - a * (float) x + (float) yf);
 }
 
+void move_the_soldier(APP *app, POINT *array, SOLDIER **soldiers, int i, int j) {
+    //calculate the line slope between start point and end point
+    float a = (float) (soldiers[i][j].start_y - soldiers[i][j].des_y) /
+              (float) (soldiers[i][j].des_x - soldiers[i][j].start_x);
+
+    ///direction algorithm///
+    if (soldiers[i][j].start_y > soldiers[i][j].des_y) {
+        if (soldiers[i][j].y >
+            line_between_start_end(soldiers[i][j].x, a, soldiers[i][j].des_x, soldiers[i][j].des_y)) {
+            soldiers[i][j].y -= 2;
+        } else {
+            soldiers[i][j].x += 2 * ((soldiers[i][j].des_x - soldiers[i][j].start_x) /
+                                     abs(soldiers[i][j].des_x - soldiers[i][j].start_x));
+        }
+    } else {
+        if (soldiers[i][j].y <
+            line_between_start_end(soldiers[i][j].x, a, soldiers[i][j].des_x, soldiers[i][j].des_y)) {
+            soldiers[i][j].y += 2;
+        } else {
+            soldiers[i][j].x += 2 * ((soldiers[i][j].des_x - soldiers[i][j].start_x) /
+                                     abs(soldiers[i][j].des_x - soldiers[i][j].start_x));
+        }
+    }
+    /////////////////////////
+}
+
+
 void move(APP *app, POINT *array, SOLDIER **soldiers) {
-
-    for (int j = 0; j < 10; j++) {
-        bool skip_others = 0;
-
-        if (soldiers[j] == NULL)
+    //find a group of soldiers wants to move from a point to another point
+    for (int i = 0; i < ATTACK_LIMIT; i++) {
+        if (soldiers[i] == NULL)
             continue;
 
-        for (int i = 0; soldiers[j][i].killed != -1; i++) {
-            if (soldiers[j][i].killed == 1) {
+        //loop till the end of soldiers in the sequence
+        for (int j = 0; soldiers[i][j].killed != -1; j++) {
+            //ignore the soldier who killed before
+            if (soldiers[i][j].killed == 1)
                 continue;
+
+            //the soldiers must start moving after each other not at the same time
+            if (soldiers[i][j].launch_counter != 10) {
+                soldiers[i][j].launch_counter += 1;
+                break;
             }
-            if (i != 0 &&
-            soldiers[j][i].start_x == soldiers[j][i - 1].start_x &&
-            soldiers[j][i].start_y == soldiers[j][i - 1].start_y &&
-            skip_others) {
-                continue;
-            }
-            skip_others = 0;
-            if (soldiers[j][i].launch_counter != 10) {
-                soldiers[j][i].launch_counter += 1;
-                skip_others = 1;
-                continue;
-            }
-            float a = (float) (soldiers[j][i].start_y - soldiers[j][i].dis_y) / (float) (soldiers[j][i].dis_x - soldiers[j][i].start_x);
-            if (soldiers[j][i].start_y > soldiers[j][i].dis_y) {
-                if (soldiers[j][i].y > line_between_start_end(soldiers[j][i].x, a, soldiers[j][i].dis_x, soldiers[j][i].dis_y)) {
-                    soldiers[j][i].y -= 2;
-                } else {
-                    soldiers[j][i].x +=
-                            2 * ((soldiers[j][i].dis_x - soldiers[j][i].start_x) / abs(soldiers[j][i].dis_x - soldiers[j][i].start_x));
-                }
-            } else {
-                if (soldiers[j][i].y < line_between_start_end(soldiers[j][i].x, a, soldiers[j][i].dis_x, soldiers[j][i].dis_y)) {
-                    soldiers[j][i].y += 2;
-                } else {
-                    soldiers[j][i].x +=
-                            2 * ((soldiers[j][i].dis_x - soldiers[j][i].start_x) / abs(soldiers[j][i].dis_x - soldiers[j][i].start_x));
-                }
-            }
-            if (abs(soldiers[j][i].x - soldiers[j][i].dis_x) < 8 && abs(soldiers[j][i].y - soldiers[j][i].dis_y) < 8) {
-                soldiers[j][i].killed = true;
-                if(soldiers[j][i+1].killed == -1){
-                    free(soldiers[j]);
-                    soldiers[j] = NULL;
+
+            //move the soldier and save its position
+            move_the_soldier(app, array, soldiers, i, j);
+
+            //if the soldier reached the destination
+            if (abs(soldiers[i][j].x - soldiers[i][j].des_x) < 8 && abs(soldiers[i][j].y - soldiers[i][j].des_y) < 8) {
+                //TODO increase the number of soldiers in state
+                soldiers[i][j].killed = true;
+                //if the soldier is the last one: free the allocated memory
+                if (soldiers[i][j + 1].killed == -1) {
+                    free(soldiers[i]);
+                    soldiers[i] = NULL;
                     return;
                 }
             }
-            filledCircleColor(app->renderer, soldiers[j][i].x, soldiers[j][i].y, 5, 0xaa702666);
-
+            filledCircleColor(app->renderer, soldiers[i][j].x, soldiers[i][j].y, 5, DARK_PURPLE);
         }
     }
 }
-
 
 
 int main() {
@@ -224,7 +235,6 @@ int main() {
 
 
     while (!quit) {
-//        SDL_Delay(10);
         SDL_PollEvent(&event);
 
         switch (event.type) {
@@ -247,7 +257,7 @@ int main() {
                     int ending_point = witch_point(event.button.x, event.button.y, array, number_of_points);
                     if (ending_point != -1 && ending_point != starting_point) {
                         printf("button up\n");
-                        int number_of_soldiers = random_between(10,20);
+                        int number_of_soldiers = random_between(10, 20);
                         int i = 0;
                         while (soldiers[i] != NULL)
                             i++;
@@ -257,8 +267,8 @@ int main() {
                             soldiers[i][j].start_y = array[starting_point].y;
                             soldiers[i][j].x = array[starting_point].x;
                             soldiers[i][j].y = array[starting_point].y;
-                            soldiers[i][j].dis_x = array[ending_point].x;
-                            soldiers[i][j].dis_y = array[ending_point].y;
+                            soldiers[i][j].des_x = array[ending_point].x;
+                            soldiers[i][j].des_y = array[ending_point].y;
                             soldiers[i][j].killed = 0;
                         }
                         soldiers[i][number_of_soldiers].killed = -1;
