@@ -33,6 +33,17 @@ typedef struct POINT {
     int ownership;
 } POINT;
 
+typedef struct SOLDIER {
+    int start_x;
+    int start_y;
+    int x;
+    int y;
+    int dis_x;
+    int dis_y;
+    int ownership;
+    int launch_counter;
+    int killed;
+} SOLDIER;
 
 int bad_distance(POINT first, POINT second) {
     if (((int) (sqrt(pow(first.x - second.x, 2) + pow(first.y - second.y, 2)))) < (first.r + second.r))
@@ -75,6 +86,7 @@ int generate_random_map(POINT array[15], APP *app) {
                 number_of_fails_to_generate++;
                 j = 0;
                 if (number_of_fails_to_generate > 100) {
+                    //we can not generate more states :(
                     number_of_points = i + 1;
                     break;
                 }
@@ -130,9 +142,66 @@ int witch_point(int x, int y, POINT *array, int number_of_points) {
     return -1;
 }
 
-void move(APP *app, POINT *array, int moving_points[]) {
-//    array[moving_points[0]]
+int line_between_start_end(int x, float a, int xf, int yf) {
+    //  yi - yf = a(xf - xi)
+    //= yi = axf - axi + yf
+    return (int) (a * (float) xf - a * (float) x + (float) yf);
 }
+
+void move(APP *app, POINT *array, SOLDIER **soldiers) {
+
+    for (int j = 0; j < 10; j++) {
+        bool skip_others = 0;
+
+        if (soldiers[j] == NULL)
+            continue;
+
+        for (int i = 0; soldiers[j][i].killed != -1; i++) {
+            if (soldiers[j][i].killed == 1) {
+                continue;
+            }
+            if (i != 0 &&
+            soldiers[j][i].start_x == soldiers[j][i - 1].start_x &&
+            soldiers[j][i].start_y == soldiers[j][i - 1].start_y &&
+            skip_others) {
+                continue;
+            }
+            skip_others = 0;
+            if (soldiers[j][i].launch_counter != 10) {
+                soldiers[j][i].launch_counter += 1;
+                skip_others = 1;
+                continue;
+            }
+            float a = (float) (soldiers[j][i].start_y - soldiers[j][i].dis_y) / (float) (soldiers[j][i].dis_x - soldiers[j][i].start_x);
+            if (soldiers[j][i].start_y > soldiers[j][i].dis_y) {
+                if (soldiers[j][i].y > line_between_start_end(soldiers[j][i].x, a, soldiers[j][i].dis_x, soldiers[j][i].dis_y)) {
+                    soldiers[j][i].y -= 2;
+                } else {
+                    soldiers[j][i].x +=
+                            2 * ((soldiers[j][i].dis_x - soldiers[j][i].start_x) / abs(soldiers[j][i].dis_x - soldiers[j][i].start_x));
+                }
+            } else {
+                if (soldiers[j][i].y < line_between_start_end(soldiers[j][i].x, a, soldiers[j][i].dis_x, soldiers[j][i].dis_y)) {
+                    soldiers[j][i].y += 2;
+                } else {
+                    soldiers[j][i].x +=
+                            2 * ((soldiers[j][i].dis_x - soldiers[j][i].start_x) / abs(soldiers[j][i].dis_x - soldiers[j][i].start_x));
+                }
+            }
+            if (abs(soldiers[j][i].x - soldiers[j][i].dis_x) < 8 && abs(soldiers[j][i].y - soldiers[j][i].dis_y) < 8) {
+                soldiers[j][i].killed = true;
+                if(soldiers[j][i+1].killed == -1){
+                    free(soldiers[j]);
+                    soldiers[j] = NULL;
+                    return;
+                }
+            }
+            filledCircleColor(app->renderer, soldiers[j][i].x, soldiers[j][i].y, 5, 0xaa702666);
+
+        }
+    }
+}
+
 
 
 int main() {
@@ -151,6 +220,7 @@ int main() {
     SDL_RenderClear(app->renderer);
     int number_of_points = generate_random_map(array, app);
     int starting_point = -1;
+    SOLDIER *soldiers[10] = {NULL};
 
 
     while (!quit) {
@@ -175,8 +245,23 @@ int main() {
             case SDL_MOUSEBUTTONUP:
                 if (event.button.button == SDL_BUTTON_LEFT && starting_point != -1) {
                     int ending_point = witch_point(event.button.x, event.button.y, array, number_of_points);
-                    if (ending_point != -1) {
+                    if (ending_point != -1 && ending_point != starting_point) {
                         printf("button up\n");
+                        int number_of_soldiers = random_between(10,20);
+                        int i = 0;
+                        while (soldiers[i] != NULL)
+                            i++;
+                        soldiers[i] = calloc(number_of_soldiers + 1, sizeof(SOLDIER));
+                        for (int j = 0; j < number_of_soldiers; j++) {
+                            soldiers[i][j].start_x = array[starting_point].x;
+                            soldiers[i][j].start_y = array[starting_point].y;
+                            soldiers[i][j].x = array[starting_point].x;
+                            soldiers[i][j].y = array[starting_point].y;
+                            soldiers[i][j].dis_x = array[ending_point].x;
+                            soldiers[i][j].dis_y = array[ending_point].y;
+                            soldiers[i][j].killed = 0;
+                        }
+                        soldiers[i][number_of_soldiers].killed = -1;
                         array[ending_point].ownership = 1;
                     }
                 }
@@ -186,16 +271,16 @@ int main() {
 
 
 
-        //TODO rendering code goes here
-        int moving_points[] = {0, 7};
-        move(app, array, moving_points);
-        // render window
-//        SDL_RenderClear(app->renderer);
-//        SDL_SetRenderDrawColor(app->renderer, 252, 255, 217, 255);
+        //TO//DO rendering code goes here
 
+
+        // render window
+        SDL_SetRenderDrawColor(app->renderer, 252, 255, 217, 255);
+        SDL_RenderClear(app->renderer);
         draw_the_map(app, array, number_of_points);
+        move(app, array, soldiers);
         SDL_RenderPresent(app->renderer);
-        SDL_Delay(10);
+        SDL_Delay(5);
     }
     return 0;
 }
