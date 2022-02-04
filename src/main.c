@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <time.h>
+#include <math.h>
 
 
 #ifdef main
@@ -29,6 +30,10 @@ typedef struct APP {
     SDL_Renderer *renderer;
     SDL_Texture *texture;
 } APP;
+typedef struct COORDINATE {
+    int x;
+    int y;
+} COORDINATE;
 
 typedef struct POINT {
     int x;
@@ -125,7 +130,7 @@ bool init(APP *app) {
         printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
         return false;
     }
-    app->renderer = SDL_CreateRenderer(app->window, -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
+    app->renderer = SDL_CreateRenderer(app->window, -1, SDL_RENDERER_ACCELERATED);
     if (app->renderer == NULL) {
         printf("renderer could not be created! SDL_Error: %s\n", SDL_GetError());
         return false;
@@ -321,6 +326,21 @@ void present_main_menu(APP *app) {
 }
 
 
+void arrow(APP *app, int x1, int y1, int x2, int y2, double width, Uint32 color) {
+    thickLineColor(app->renderer, x1, y1, x2, y2, width, color);
+    double angle = atan((double) (y1 - y2) / (double) (x2 - x1));
+    COORDINATE T[3]; //The triangle's sides
+    printf("%lf\n\n", angle);
+    T[0].x = x2 + 1.2 * sqrt(3) * width * cos(angle) * ((x2 - x1 == 0) ? 1 : ((x2 - x1) / abs(x2 - x1)));
+    T[0].y = y2 - 1.2 * sqrt(3) * width * sin(angle) * ((x2 - x1 == 0) ? 1 : ((x2 - x1) / abs(x2 - x1)));
+    T[1].x = x2 + 1.4 * width * sin(angle);
+    T[1].y = y2 + 1.4 * width * cos(angle);
+    T[2].x = x2 - 1.4 * width * sin(angle);
+    T[2].y = y2 - 1.4 * width * cos(angle);
+    filledTrigonColor(app->renderer, T[0].x, T[0].y, T[1].x, T[1].y, T[2].x, T[2].y, color);
+}
+
+
 int main() {
     APP *app = calloc(1, sizeof(APP));
     SDL_Event event;
@@ -332,7 +352,27 @@ int main() {
         die(app);
     }
 
-    present_main_menu(app);
+//    present_main_menu(app);
+
+    SDL_Color color2 = {.r = 200, .g= 200, .b = 200, .a=255};
+    Uint32 color = 0xFFaaaaaa;
+    thickLineColor(app->renderer, 100, 100, 200, 250, 10, color);
+
+    aacircleRGBA(app->renderer, 300, 100, 40, 50, 50, 50, 255);
+
+    roundedRectangleRGBA(app->renderer, 500, 300, 400, 200, 10, 90, 90, 90, 255);
+
+    short vx[10] = {250, 200, 300, 400, 200, 400, 300, 200, 100, 50};
+    short vy[10] = {200, 200, 250, 400, 200, 400, 300, 200, 100, 50};
+//    filledPolygonColor(app->renderer,vx,vy,10,color);
+
+    arrow(app, 200, 200, 500, 300, 15, color);
+
+    bezierColor(app->renderer, vx, vy, 3, 10, color);
+
+    SDL_RenderPresent(app->renderer);
+
+//    SDL_Delay(5000);
 
     SDL_SetRenderDrawColor(app->renderer, 252, 255, 217, 255);
     SDL_RenderClear(app->renderer);
@@ -344,6 +384,11 @@ int main() {
     quit = false;
     while (!quit) {
         SDL_PollEvent(&event);
+
+
+        SDL_SetRenderDrawColor(app->renderer, 252, 255, 217, 255);
+        SDL_RenderClear(app->renderer);
+
 
         switch (event.type) {
             case SDL_QUIT:
@@ -359,6 +404,7 @@ int main() {
                     }
                 }
                 break;
+
 
             case SDL_MOUSEBUTTONUP:
                 if (event.button.button == SDL_BUTTON_LEFT && starting_point != -1) {
@@ -393,10 +439,14 @@ int main() {
             counter = 0;
             make_soldier(array, number_of_points);
         }
-        SDL_SetRenderDrawColor(app->renderer, 252, 255, 217, 255);
-        SDL_RenderClear(app->renderer);
+
         draw_the_map(app, array, number_of_points);
         move(app, array, soldiers);
+        if (starting_point != -1) {
+            int x_mouse, y_mouse;
+            SDL_GetMouseState(&x_mouse, &y_mouse);
+            arrow(app, array[starting_point].x, array[starting_point].y, x_mouse, y_mouse, 15, color);
+        }
         SDL_RenderPresent(app->renderer);
         SDL_Delay(5);
     }
