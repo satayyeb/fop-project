@@ -338,10 +338,10 @@ void present_main_menu(APP *app) {
 
 
 void arrow(APP *app, int x1, int y1, int x2, int y2, double width, Uint32 color) {
+    //TODO correcting the arrow and mouse positions
     thickLineColor(app->renderer, x1, y1, x2, y2, width, color);
     double angle = atan((double) (y1 - y2) / (double) (x2 - x1));
     COORDINATE T[3]; //The triangle's sides
-    printf("%lf\n\n", angle);
     T[0].x = x2 + 1.2 * sqrt(3) * width * cos(angle) * ((x2 - x1 == 0) ? 1 : ((x2 - x1) / abs(x2 - x1)));
     T[0].y = y2 - 1.2 * sqrt(3) * width * sin(angle) * ((x2 - x1 == 0) ? 1 : ((x2 - x1) / abs(x2 - x1)));
     T[1].x = x2 + 1.4 * width * sin(angle);
@@ -353,8 +353,6 @@ void arrow(APP *app, int x1, int y1, int x2, int y2, double width, Uint32 color)
 
 
 int main(int argc, char *argv[]) {
-
-//    printf("%d",(8*sizeof(void*)));
 
     APP *app = calloc(1, sizeof(APP));
     SDL_Event event;
@@ -403,7 +401,7 @@ int main(int argc, char *argv[]) {
                 if (event.button.button == SDL_BUTTON_LEFT && starting_point == -1) {
                     int point_number = witch_point(event.button.x, event.button.y, array, number_of_points);
                     if (array[point_number].ownership == 1 || array[point_number].ownership == 2) {
-                        printf("button down\n");
+//                        printf("button down\n");
                         starting_point = point_number;
                     }
                 }
@@ -413,7 +411,7 @@ int main(int argc, char *argv[]) {
                 if (event.button.button == SDL_BUTTON_LEFT && starting_point != -1) {
                     int ending_point = witch_point(event.button.x, event.button.y, array, number_of_points);
                     if (ending_point != -1 && ending_point != starting_point) {
-                        printf("button up\n");
+//                        printf("button up\n");
                         int number_of_soldiers = array[starting_point].value;
                         array[starting_point].value = 0;
                         int i = 0;
