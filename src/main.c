@@ -15,7 +15,7 @@
 
 #define max_land_size  80
 #define min_land_size  50
-#define ATTACK_LIMIT    10
+#define ATTACK_LIMIT    15
 #define DARK_GREEN 0xaa702666
 #define LIGHT_GREEN 0xffde3ec9
 #define DARK_RED 0xaa09099e
@@ -53,6 +53,7 @@ typedef struct SOLDIER {
     int ownership;
     int launch_counter;
     int killed;
+    int number_of_companions;
 } SOLDIER;
 
 int bad_distance(POINT first, POINT second) {
@@ -199,8 +200,19 @@ void move(APP *app, POINT *array, SOLDIER **soldiers) {
         if (soldiers[i] == NULL)
             continue;
 
+        //free memory if all soldiers killed or reached the destination
+        for (int j = 0; j < soldiers[i][0].number_of_companions; j++) {
+            if(soldiers[i][j].killed != 1)
+                break;
+            if(j == soldiers[i][0].number_of_companions - 1){
+                free(soldiers[i]);
+                soldiers[i]=NULL;
+                return;
+            }
+        }
+
         //loop till the end of soldiers in the sequence
-        for (int j = 0; soldiers[i][j].killed != -1; j++) {
+        for (int j = 0; j < soldiers[i][0].number_of_companions; j++) {
             //ignore the soldier who killed before
             if (soldiers[i][j].killed == 1)
                 continue;
@@ -209,6 +221,10 @@ void move(APP *app, POINT *array, SOLDIER **soldiers) {
             if (soldiers[i][j].launch_counter < 10) {
                 soldiers[i][j].launch_counter += 1;
                 break;
+            }else if (soldiers[i][j].launch_counter == 10){
+                array[soldiers[i][j].start_point].value -= 1;
+                soldiers[i][j].killed = 0;
+                soldiers[i][j].launch_counter += 1;
             }
 
             //move the soldier and save its position
@@ -218,7 +234,7 @@ void move(APP *app, POINT *array, SOLDIER **soldiers) {
             for (int k = 0; k < ATTACK_LIMIT; k++) {
                 if (soldiers[k] == NULL)
                     continue;
-                for (int l = 0; soldiers[k][l].killed != -1; l++) {
+                for (int l = 0; l < soldiers[k][0].number_of_companions; l++) {
                     if (soldiers[k][l].ownership != soldiers[i][j].ownership &&
                         abs(soldiers[k][l].x - soldiers[i][j].x) < 10 &&
                         abs(soldiers[k][l].y - soldiers[i][j].y) < 10) {
@@ -234,6 +250,7 @@ void move(APP *app, POINT *array, SOLDIER **soldiers) {
             int dest_x = array[soldiers[i][j].end_point].x;
             int dest_y = array[soldiers[i][j].end_point].y;
             if (abs(soldiers[i][j].x - dest_x) < 8 && abs(soldiers[i][j].y - dest_y) < 8) {
+                soldiers[i][j].killed = true;
                 if (array[soldiers[i][j].end_point].value == 0) {
                     array[soldiers[i][j].end_point].ownership = soldiers[i][j].ownership;
                     array[soldiers[i][j].end_point].value += 1;
@@ -241,13 +258,6 @@ void move(APP *app, POINT *array, SOLDIER **soldiers) {
                     array[soldiers[i][j].end_point].value += 1;
                 } else {
                     array[soldiers[i][j].end_point].value -= 1;
-                }
-                soldiers[i][j].killed = true;
-                //if the soldier is the last one: free the allocated memory
-                if (soldiers[i][j + 1].killed == -1) {
-                    free(soldiers[i]);
-                    soldiers[i] = NULL;
-                    return;
                 }
             }
             //print the soldiers
@@ -264,9 +274,9 @@ void move(APP *app, POINT *array, SOLDIER **soldiers) {
 
 void make_soldier(POINT *array, int number_of_points) {
     for (int i = 0; i < number_of_points; i++) {
-//        if (array[i].ownership == 0 && array[i].value < 10) {
-//            array[i].value += 1;
-//        }
+        //        if (array[i].ownership == 0 && array[i].value < 10) {
+        //            array[i].value += 1;
+        //        }
         if (array[i].ownership == 1 && array[i].value < 50) {
             array[i].value += 1;
         }
@@ -291,7 +301,7 @@ void present_main_menu(APP *app) {
         SDL_UpdateWindowSurface(app->window);
 
 
-//        SDL_Delay(4000);
+        //        SDL_Delay(4000);
         switch (event.type) {
             case SDL_QUIT:
                 quit = true;
@@ -370,7 +380,7 @@ int main(int argc, char *argv[]) {
         die(app);
     }
 
-//    present_main_menu(app);
+    //    present_main_menu(app);
 
 
     Uint32 color = 0xFFaaaaaa;
@@ -380,7 +390,7 @@ int main(int argc, char *argv[]) {
     SDL_RenderClear(app->renderer);
     int number_of_points = generate_random_map(array, app);
     int starting_point = -1;
-    SOLDIER *soldiers[10] = {NULL};
+    SOLDIER *soldiers[ATTACK_LIMIT] = {NULL};
     int counter = 0;
 
     quit = false;
@@ -401,7 +411,7 @@ int main(int argc, char *argv[]) {
                 if (event.button.button == SDL_BUTTON_LEFT && starting_point == -1) {
                     int point_number = witch_point(event.button.x, event.button.y, array, number_of_points);
                     if (array[point_number].ownership == 1 || array[point_number].ownership == 2) {
-//                        printf("button down\n");
+                        //                        printf("button down\n");
                         starting_point = point_number;
                     }
                 }
@@ -411,9 +421,20 @@ int main(int argc, char *argv[]) {
                 if (event.button.button == SDL_BUTTON_LEFT && starting_point != -1) {
                     int ending_point = witch_point(event.button.x, event.button.y, array, number_of_points);
                     if (ending_point != -1 && ending_point != starting_point) {
-//                        printf("button up\n");
-                        int number_of_soldiers = array[starting_point].value;
-                        array[starting_point].value = 0;
+                        //                        printf("button up\n");
+
+
+                        int already_reserved_soldiers = 0;
+                        for (int i = 0; i < ATTACK_LIMIT; i++) {
+                            if (soldiers[i] != NULL && soldiers[i][0].start_point == starting_point) {
+                                for (int j = 0; j < soldiers[i][0].number_of_companions; ++j) {
+                                    if (soldiers[i][j].killed == -1){
+                                        already_reserved_soldiers += 1;
+                                    }
+                                }
+                            }
+                        }
+                        int number_of_soldiers = array[starting_point].value - already_reserved_soldiers;
                         int i = 0;
                         while (soldiers[i] != NULL && i < ATTACK_LIMIT)
                             i++;
@@ -424,9 +445,9 @@ int main(int argc, char *argv[]) {
                             soldiers[i][j].end_point = ending_point;
                             soldiers[i][j].x = array[starting_point].x;
                             soldiers[i][j].y = array[starting_point].y;
-                            soldiers[i][j].killed = 0;
+                            soldiers[i][j].killed = -1;
+                            soldiers[i][j].number_of_companions = number_of_soldiers;
                         }
-                        soldiers[i][number_of_soldiers].killed = -1;
                     }
                 }
                 starting_point = -1;
@@ -436,7 +457,7 @@ int main(int argc, char *argv[]) {
         // render window
 
         counter++;
-        if (counter > 50) {
+        if (counter > 100) {
             counter = 0;
             make_soldier(array, number_of_points);
         }
