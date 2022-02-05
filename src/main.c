@@ -1,5 +1,7 @@
 #include <SDL.h>
 #include <SDL2_gfxPrimitives.h>
+#include <SDL_image.h>
+#include <SDL_ttf.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -7,9 +9,9 @@
 #include <math.h>
 
 
-#ifdef main
-#undef main
-#endif
+//#ifdef main
+//#undef main
+//#endif
 
 #define max_land_size  80
 #define min_land_size  50
@@ -17,7 +19,7 @@
 #define DARK_GREEN 0xaa702666
 #define LIGHT_GREEN 0xffde3ec9
 #define DARK_RED 0xaa09099e
-#define LIGHT_RED 0xff3535e8
+#define LIGHT_RED 0xff3536e8
 
 const int FPS = 60;
 const int section = 50;
@@ -281,10 +283,15 @@ void present_main_menu(APP *app) {
     bool lock = false;
     bool quit = false;
     char text[100] = {'\0'};
+    SDL_Surface *pic_surface = SDL_LoadBMP("../media/island.bmp");
     while (!quit) {
 
         SDL_PollEvent(&event);
+        SDL_BlitSurface(pic_surface, NULL, app->surface, NULL);
+        SDL_UpdateWindowSurface(app->window);
 
+
+//        SDL_Delay(4000);
         switch (event.type) {
             case SDL_QUIT:
                 quit = true;
@@ -320,6 +327,10 @@ void present_main_menu(APP *app) {
         SDL_Delay(40);
         SDL_SetRenderDrawColor(app->renderer, 252, 250, 217, 255);
         SDL_RenderClear(app->renderer);
+
+        stringRGBA(app->renderer, 200, 170, "Enter your name:", 0, 4, 4, 255);
+        roundedRectangleRGBA(app->renderer, 190, 190, 600, 215, 10, 90, 90, 90, 255);
+
         stringRGBA(app->renderer, 200, 200, text, 0, 4, 4, 255);
         SDL_RenderPresent(app->renderer);
     }
@@ -341,12 +352,21 @@ void arrow(APP *app, int x1, int y1, int x2, int y2, double width, Uint32 color)
 }
 
 
-int main() {
+int main(int argc, char *argv[]) {
+
+//    printf("%d",(8*sizeof(void*)));
+
     APP *app = calloc(1, sizeof(APP));
     SDL_Event event;
     bool quit = false;
     srand(time(0));
     POINT array[15] = {0};
+    int start_arrow[5] = {-1};
+
+    TTF_Init();
+
+    int imgFlags = IMG_INIT_PNG;
+    if (!(IMG_Init(imgFlags) & imgFlags)) {}
 
     if (!init(app)) {
         die(app);
@@ -354,25 +374,9 @@ int main() {
 
 //    present_main_menu(app);
 
-    SDL_Color color2 = {.r = 200, .g= 200, .b = 200, .a=255};
+
     Uint32 color = 0xFFaaaaaa;
-    thickLineColor(app->renderer, 100, 100, 200, 250, 10, color);
 
-    aacircleRGBA(app->renderer, 300, 100, 40, 50, 50, 50, 255);
-
-    roundedRectangleRGBA(app->renderer, 500, 300, 400, 200, 10, 90, 90, 90, 255);
-
-    short vx[10] = {250, 200, 300, 400, 200, 400, 300, 200, 100, 50};
-    short vy[10] = {200, 200, 250, 400, 200, 400, 300, 200, 100, 50};
-//    filledPolygonColor(app->renderer,vx,vy,10,color);
-
-    arrow(app, 200, 200, 500, 300, 15, color);
-
-    bezierColor(app->renderer, vx, vy, 3, 10, color);
-
-    SDL_RenderPresent(app->renderer);
-
-//    SDL_Delay(5000);
 
     SDL_SetRenderDrawColor(app->renderer, 252, 255, 217, 255);
     SDL_RenderClear(app->renderer);
@@ -405,7 +409,6 @@ int main() {
                 }
                 break;
 
-
             case SDL_MOUSEBUTTONUP:
                 if (event.button.button == SDL_BUTTON_LEFT && starting_point != -1) {
                     int ending_point = witch_point(event.button.x, event.button.y, array, number_of_points);
@@ -414,7 +417,7 @@ int main() {
                         int number_of_soldiers = array[starting_point].value;
                         array[starting_point].value = 0;
                         int i = 0;
-                        while (soldiers[i] != NULL)
+                        while (soldiers[i] != NULL && i < ATTACK_LIMIT)
                             i++;
                         soldiers[i] = calloc(number_of_soldiers + 1, sizeof(SOLDIER));
                         for (int j = 0; j < number_of_soldiers; j++) {
@@ -442,6 +445,7 @@ int main() {
 
         draw_the_map(app, array, number_of_points);
         move(app, array, soldiers);
+        //render arrows
         if (starting_point != -1) {
             int x_mouse, y_mouse;
             SDL_GetMouseState(&x_mouse, &y_mouse);
@@ -452,4 +456,3 @@ int main() {
     }
     return 0;
 }
-
