@@ -9,9 +9,9 @@
 #include <math.h>
 
 
-//#ifdef main
-//#undef main
-//#endif
+#ifdef main
+#undef main
+#endif
 
 #define max_land_size  80
 #define min_land_size  50
@@ -31,7 +31,9 @@ typedef struct APP {
     SDL_Surface *surface;
     SDL_Renderer *renderer;
     SDL_Texture *texture;
+    TTF_Font *font;
 } APP;
+
 typedef struct COORDINATE {
     int x;
     int y;
@@ -68,8 +70,6 @@ int random_between(int start, int end) {
 
 void draw_the_map(APP *app, POINT *array, int number_of_points) {
     char str[6];
-
-
     for (int i = 0; i < number_of_points; i++) {
         if (array[i].ownership == 1) {
             filledCircleColor(app->renderer, array[i].x, array[i].y, array[i].r, LIGHT_GREEN);
@@ -141,15 +141,31 @@ bool init(APP *app) {
     app->texture = SDL_CreateTexture(app->renderer, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING,
                                      SCREEN_WIDTH, SCREEN_HEIGHT);
     app->surface = SDL_GetWindowSurface(app->window);
+
+    if (TTF_Init() != 0) {
+        printf("can not init SDL_TTF :( SDL_Error: %s\n", SDL_GetError());
+        return false;
+    }
+
+    int flags = IMG_INIT_JPG | IMG_INIT_PNG;
+    int init = IMG_Init(flags);
+    if (init & flags != flags) {
+        printf("IMG_Init: Failed to init required jpg and png support!\n");
+        printf("IMG_Init: %s\n", IMG_GetError());
+        return false;
+    }
+
     return true;
 }
 
 void die(APP *app) {
     SDL_FreeSurface(app->surface);
-    SDL_DestroyWindow(app->window);
+//    SDL_DestroyWindow(app->window);
     SDL_DestroyRenderer(app->renderer);
     SDL_DestroyTexture(app->texture);
     SDL_Quit();
+    TTF_Quit();
+    IMG_Quit();
     exit(-1);
 }
 
@@ -202,11 +218,11 @@ void move(APP *app, POINT *array, SOLDIER **soldiers) {
 
         //free memory if all soldiers killed or reached the destination
         for (int j = 0; j < soldiers[i][0].number_of_companions; j++) {
-            if(soldiers[i][j].killed != 1)
+            if (soldiers[i][j].killed != 1)
                 break;
-            if(j == soldiers[i][0].number_of_companions - 1){
+            if (j == soldiers[i][0].number_of_companions - 1) {
                 free(soldiers[i]);
-                soldiers[i]=NULL;
+                soldiers[i] = NULL;
                 return;
             }
         }
@@ -221,7 +237,7 @@ void move(APP *app, POINT *array, SOLDIER **soldiers) {
             if (soldiers[i][j].launch_counter < 10) {
                 soldiers[i][j].launch_counter += 1;
                 break;
-            }else if (soldiers[i][j].launch_counter == 10){
+            } else if (soldiers[i][j].launch_counter == 10) {
                 array[soldiers[i][j].start_point].value -= 1;
                 soldiers[i][j].killed = 0;
                 soldiers[i][j].launch_counter += 1;
@@ -286,67 +302,6 @@ void make_soldier(POINT *array, int number_of_points) {
     }
 }
 
-void present_main_menu(APP *app) {
-    SDL_Event event;
-    char ch[2] = {'\0'};
-    bool shift = false;
-    bool lock = false;
-    bool quit = false;
-    char text[100] = {'\0'};
-    SDL_Surface *pic_surface = SDL_LoadBMP("../media/island.bmp");
-    while (!quit) {
-
-        SDL_PollEvent(&event);
-        SDL_BlitSurface(pic_surface, NULL, app->surface, NULL);
-        SDL_UpdateWindowSurface(app->window);
-
-
-        //        SDL_Delay(4000);
-        switch (event.type) {
-            case SDL_QUIT:
-                quit = true;
-                die(app);
-                break;
-
-            case SDL_KEYUP:
-                if (event.key.keysym.sym == SDLK_RSHIFT || event.key.keysym.sym == SDLK_LSHIFT) {
-                    shift = false;
-                }
-                lock = false;
-                break;
-
-            case SDL_KEYDOWN:
-                if (event.key.keysym.sym == SDLK_RETURN) {
-                    quit = true;
-                    break;
-                } else if (event.key.keysym.sym == SDLK_RSHIFT || event.key.keysym.sym == SDLK_LSHIFT) {
-                    shift = true;
-                } else if (!lock && event.key.keysym.sym == SDLK_BACKSPACE && strlen(text) > 0) {
-                    text[strlen(text) - 1] = '\0';
-                    lock = true;
-                } else if (event.key.repeat == 0 && (32 <= event.key.keysym.sym) && (event.key.keysym.sym <= 127)) {
-                    ch[0] = (char) event.key.keysym.sym;
-                    if (shift && 'a' <= ch[0] && ch[0] <= 'z') {
-                        ch[0] = (char) ((int) ch[0] - 32);
-                    }
-                    strcat(text, ch);
-                    lock = true;
-                }
-                break;
-        }
-        SDL_Delay(40);
-        SDL_SetRenderDrawColor(app->renderer, 252, 250, 217, 255);
-        SDL_RenderClear(app->renderer);
-
-        stringRGBA(app->renderer, 200, 170, "Enter your name:", 0, 4, 4, 255);
-        roundedRectangleRGBA(app->renderer, 190, 190, 600, 215, 10, 90, 90, 90, 255);
-
-        stringRGBA(app->renderer, 200, 200, text, 0, 4, 4, 255);
-        SDL_RenderPresent(app->renderer);
-    }
-}
-
-
 void arrow(APP *app, int x1, int y1, int x2, int y2, double width, Uint32 color) {
     //TODO correcting the arrow and mouse positions
     thickLineColor(app->renderer, x1, y1, x2, y2, width, color);
@@ -362,6 +317,161 @@ void arrow(APP *app, int x1, int y1, int x2, int y2, double width, Uint32 color)
 }
 
 
+void print_text(char *string, char *font_path, int size, SDL_Color color, SDL_Color background_color, int x, int y,
+                APP *app) {
+
+}
+
+bool present_main_menu(APP *app) {
+
+    char ch[2] = {'\0'};
+    bool shift = false;
+    bool lock = false;
+    bool quit = false;
+    char text[70] = {'\0'};
+
+
+    SDL_Surface *image = IMG_Load("../media/island.jpg");
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(app->renderer, image);
+//        SDL_Rect dstrect = { 200, 200, 50, 50 };
+//        SDL_RenderCopy(renderer, texture, NULL, &dstrect);
+
+
+
+
+    SDL_Color background_color = {10, 10, 10, 1};
+    SDL_Color text_color = {0, 0, 0, 255};
+    SDL_Color text_color_white = {255, 255, 255, 255};
+
+
+    int text_width, text_height;
+    TTF_Font *font_huge = TTF_OpenFont("../fonts/ariblk.ttf", 70);
+    TTF_SizeText(font_huge, "ISLAND SOLDIERS", &text_width, &text_height);
+    SDL_Rect textbox_huge = {(SCREEN_WIDTH - text_width) / 2, 50, text_width, text_height};
+    SDL_Surface *surface_huge = TTF_RenderText_Shaded(font_huge, "ISLAND SOLDIERS", text_color, background_color);
+    SDL_Texture *texture_huge = SDL_CreateTextureFromSurface(app->renderer, surface_huge);
+
+    TTF_Font *font_medium = TTF_OpenFont("../fonts/ariblk.ttf", 35);
+    TTF_SizeText(font_medium, "Enter your name:", &text_width, &text_height);
+    SDL_Rect textbox_medium = {(SCREEN_WIDTH - text_width) / 2, 190, text_width, text_height};
+    SDL_Surface *surface_medium = TTF_RenderText_Shaded(font_medium, "Enter your name:", text_color, background_color);
+    SDL_Texture *texture_medium = SDL_CreateTextureFromSurface(app->renderer, surface_medium);
+
+
+    TTF_Font *font_white = TTF_OpenFont("../fonts/ariblk.ttf", 25);
+    TTF_SizeText(font_white, "Let's go!", &text_width, &text_height);
+    SDL_Rect textbox_white = {(SCREEN_WIDTH - text_width) / 2, 430, text_width, text_height};
+    SDL_Surface *surface_white = TTF_RenderText_Shaded(font_white, "Let's go!", text_color_white, background_color);
+    SDL_Texture *texture_white = SDL_CreateTextureFromSurface(app->renderer, surface_white);
+
+
+    TTF_Font *font_small = TTF_OpenFont("../fonts/ariblk.ttf", 30);
+    SDL_Surface *surface_small = TTF_RenderText_Shaded(font_small, text, text_color, background_color);
+    SDL_Texture *texture_small = SDL_CreateTextureFromSurface(app->renderer, surface_small);
+
+    bool render = 1;
+    SDL_Event event;
+    while (!quit) {
+        if(render){
+            SDL_RenderCopy(app->renderer, texture, NULL, NULL);
+            //        SDL_SetRenderDrawColor(app->renderer, 140, 55, 237, 255);
+            //        SDL_RenderClear(app->renderer);
+
+            stringRGBA(app->renderer, 200, 170, "Enter your name:", 0, 4, 4, 255);
+            roundedRectangleRGBA(app->renderer, 200, 250, 800, 300, 10, 0, 0, 0, 255);
+
+
+            SDL_RenderCopy(app->renderer, texture_huge, NULL, &textbox_huge);
+            SDL_RenderCopy(app->renderer, texture_medium, NULL, &textbox_medium);
+
+
+            TTF_SizeText(font_small, text, &text_width, &text_height);
+            SDL_Rect textbox_small = {220, 250, text_width, text_height};
+            surface_small = TTF_RenderText_Shaded(font_small, text, text_color, background_color);
+            texture_small = SDL_CreateTextureFromSurface(app->renderer, surface_small);
+            SDL_RenderCopy(app->renderer, texture_small, NULL, &textbox_small);
+
+
+            roundedBoxColor(app->renderer, 400, 420, 600, 480, 20, 0xeeb03c30);
+            SDL_RenderCopy(app->renderer, texture_white, NULL, &textbox_white);
+
+            SDL_RenderPresent(app->renderer);
+
+            render = 0;
+        }
+        SDL_Delay(10);
+        SDL_PollEvent(&event);
+
+        switch (event.type) {
+            case SDL_QUIT:
+                quit = true;
+                return 0;
+                break;
+
+            case SDL_KEYUP:
+                if (event.key.keysym.sym == SDLK_RSHIFT || event.key.keysym.sym == SDLK_LSHIFT) {
+                    shift = false;
+                }
+                lock = false;
+                break;
+
+            case SDL_KEYDOWN:
+                render =1;
+                if (event.key.keysym.sym == SDLK_RETURN) {
+                    quit = true;
+                    break;
+                } else if (event.key.keysym.sym == SDLK_RSHIFT || event.key.keysym.sym == SDLK_LSHIFT) {
+                    shift = true;
+                } else if (!lock && event.key.keysym.sym == SDLK_BACKSPACE && strlen(text) > 0) {
+                    text[strlen(text) - 1] = '\0';
+                    lock = true;
+                } else if (event.key.repeat == 0 && (32 <= event.key.keysym.sym) && (event.key.keysym.sym <= 127) &&
+                           text_width < 550) {
+                    ch[0] = (char) event.key.keysym.sym;
+                    if (shift && 'a' <= ch[0] && ch[0] <= 'z') {
+                        ch[0] = (char) ((int) ch[0] - 32);
+                    }
+                    strcat(text, ch);
+                    lock = true;
+                }
+                break;
+
+            case SDL_MOUSEBUTTONDOWN:
+                if (event.button.button == SDL_BUTTON_LEFT) {
+//                    lock = 1;
+                    int x_mouse, y_mouse;
+                    SDL_GetMouseState(&x_mouse, &y_mouse);
+                    if (400 < x_mouse && x_mouse < 600 && 420 < y_mouse && y_mouse < 480) {
+                        quit = true;
+                    }
+                }
+                break;
+        }
+
+    }
+    SDL_FreeSurface(surface_huge);
+    SDL_DestroyTexture(texture_huge);
+    TTF_CloseFont(font_huge);
+
+    SDL_FreeSurface(surface_medium);
+    SDL_DestroyTexture(texture_medium);
+    TTF_CloseFont(font_medium);
+
+    SDL_FreeSurface(surface_small);
+    SDL_DestroyTexture(texture_small);
+    TTF_CloseFont(font_small);
+
+    SDL_FreeSurface(surface_white);
+    SDL_DestroyTexture(texture_white);
+    TTF_CloseFont(font_white);
+
+    SDL_FreeSurface(image);
+    SDL_DestroyTexture(texture);
+
+    return true;
+}
+
+
 int main(int argc, char *argv[]) {
 
     APP *app = calloc(1, sizeof(APP));
@@ -369,25 +479,20 @@ int main(int argc, char *argv[]) {
     bool quit = false;
     srand(time(0));
     POINT array[15] = {0};
-    int start_arrow[5] = {-1};
 
-    TTF_Init();
+    Uint32 color = 0xFFaaaaaa;
 
-    int imgFlags = IMG_INIT_PNG;
-    if (!(IMG_Init(imgFlags) & imgFlags)) {}
 
     if (!init(app)) {
         die(app);
     }
 
-    //    present_main_menu(app);
+    if (!present_main_menu(app)) {
+        return 0;
+    }
 
 
-    Uint32 color = 0xFFaaaaaa;
 
-
-    SDL_SetRenderDrawColor(app->renderer, 252, 255, 217, 255);
-    SDL_RenderClear(app->renderer);
     int number_of_points = generate_random_map(array, app);
     int starting_point = -1;
     SOLDIER *soldiers[ATTACK_LIMIT] = {NULL};
@@ -395,6 +500,7 @@ int main(int argc, char *argv[]) {
 
     quit = false;
     while (!quit) {
+
         SDL_PollEvent(&event);
 
 
@@ -428,7 +534,7 @@ int main(int argc, char *argv[]) {
                         for (int i = 0; i < ATTACK_LIMIT; i++) {
                             if (soldiers[i] != NULL && soldiers[i][0].start_point == starting_point) {
                                 for (int j = 0; j < soldiers[i][0].number_of_companions; ++j) {
-                                    if (soldiers[i][j].killed == -1){
+                                    if (soldiers[i][j].killed == -1) {
                                         already_reserved_soldiers += 1;
                                     }
                                 }
@@ -470,6 +576,8 @@ int main(int argc, char *argv[]) {
             SDL_GetMouseState(&x_mouse, &y_mouse);
             arrow(app, array[starting_point].x, array[starting_point].y, x_mouse, y_mouse, 15, color);
         }
+
+
         SDL_RenderPresent(app->renderer);
         SDL_Delay(5);
     }
