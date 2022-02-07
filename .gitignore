@@ -132,6 +132,10 @@ _deps
 #pdf files
 *.pdf
 
+
+note.c
+
+
 # Kernel Module Compile Results
 *.mod*
 *.cmd
