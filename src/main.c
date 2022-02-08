@@ -7,6 +7,7 @@
 #include <stdbool.h>
 #include <time.h>
 #include <math.h>
+#include <string.h>
 
 #ifdef main
 #undef main
@@ -15,10 +16,12 @@
 #define max_land_size  80
 #define min_land_size  50
 #define ATTACK_LIMIT    15
-#define DARK_GREEN 0xaa702666
-#define LIGHT_GREEN 0xffde3ec9
+#define DARK_GREEN 0xaa18851a
+#define LIGHT_GREEN 0xff5fff5c
 #define DARK_RED 0xaa09099e
 #define LIGHT_RED 0xff3536e8
+#define DARK_BLUE 0xaab83d14
+#define LIGHT_BLUE 0xffED8E6D
 
 const int FPS = 60;
 const int section = 50;
@@ -44,6 +47,15 @@ typedef struct POINT {
     int ownership;
 } POINT;
 
+
+typedef struct POT {
+    int player1_pot_number;
+    int player1_counter;
+    int player2_pot_number;
+    int player2_counter;
+} POT;
+
+
 typedef struct SOLDIER {
     int start_point;
     int end_point;
@@ -53,9 +65,10 @@ typedef struct SOLDIER {
     int launch_counter;
     int killed;
     int number_of_companions;
+    int power;
 } SOLDIER;
 
-int bad_distance(POINT first, POINT second) {
+bool bad_distance(POINT first, POINT second) {
     if (((int) (sqrt(pow(first.x - second.x, 2) + pow(first.y - second.y, 2)))) < (first.r + second.r))
         return 1;
     return 0;
@@ -75,10 +88,11 @@ void draw_the_map(APP *app, POINT *array, int number_of_points) {
             filledCircleColor(app->renderer, array[i].x, array[i].y, array[i].r, LIGHT_RED);
             filledCircleColor(app->renderer, array[i].x, array[i].y, 20, DARK_RED);
         } else {
-            filledCircleColor(app->renderer, array[i].x, array[i].y, array[i].r, 0xffb7edba);
-            filledCircleColor(app->renderer, array[i].x, array[i].y, 20, 0xaa2e8233);
+            filledCircleColor(app->renderer, array[i].x, array[i].y, array[i].r, LIGHT_BLUE);
+            filledCircleColor(app->renderer, array[i].x, array[i].y, 20, DARK_BLUE);
         }
-        itoa(array[i].value, str, 10);
+//        itoa(array[i].value, str, 10);
+        sprintf(str, "%d", array[i].value);
         stringRGBA(app->renderer, array[i].x - 6, array[i].y - 3, str, 0, 0, 0, 255);
     }
 }
@@ -113,7 +127,6 @@ int generate_random_map(POINT array[15], APP *app) {
     }
     array[0].ownership = 1;
     array[5].ownership = 2;
-    array[5].value = 20;
     draw_the_map(app, array, number_of_points);
     return number_of_points;
 }
@@ -176,7 +189,9 @@ int line_between_start_end(int x, float a, int xf, int yf) {
     return (int) (a * (float) xf - a * (float) x + (float) yf);
 }
 
-void move_the_soldier(APP *app, POINT *array, SOLDIER **soldiers, int i, int j) {
+
+
+void move_the_soldier(APP *app, POINT *array, SOLDIER **soldiers, int i, int j, POT *pot) {
     int start_x = array[soldiers[i][j].start_point].x;
     int start_y = array[soldiers[i][j].start_point].y;
     int dest_x = array[soldiers[i][j].end_point].x;
@@ -185,25 +200,34 @@ void move_the_soldier(APP *app, POINT *array, SOLDIER **soldiers, int i, int j) 
     //calculate the line slope between start point and end point
     float a = (float) (start_y - dest_y) / (float) (dest_x - start_x);
 
+    int speed = 2;
+    if (soldiers[i][j].ownership == 1 && pot->player1_pot_number == 1 ||
+        soldiers[i][j].ownership == 2 && pot->player2_pot_number == 1) {
+        speed *= 2;
+    }
+
     ///direction algorithm////
     if (start_y > dest_y) {
         if (soldiers[i][j].y > line_between_start_end(soldiers[i][j].x, a, dest_x, dest_y)) {
-            soldiers[i][j].y -= 2;
+            soldiers[i][j].y -= speed;
         } else {
-            soldiers[i][j].x += 2 * ((dest_x - start_x) / abs(dest_x - start_x));
+            soldiers[i][j].x += speed * ((dest_x - start_x) / abs(dest_x - start_x));
         }
     } else {
         if (soldiers[i][j].y < line_between_start_end(soldiers[i][j].x, a, dest_x, dest_y)) {
-            soldiers[i][j].y += 2;
+            soldiers[i][j].y += speed;
         } else {
-            soldiers[i][j].x += 2 * ((dest_x - start_x) / abs(dest_x - start_x));
+            soldiers[i][j].x += speed * ((dest_x - start_x) / abs(dest_x - start_x));
         }
     }
-    /////////////////////////
+
+
 }
 
+/////////////////////
 
-void move(APP *app, POINT *array, SOLDIER **soldiers) {
+
+void move(APP *app, POINT *array, SOLDIER **soldiers, SDL_Rect pot_rect, int *pot_number, POT *pot) {
     //find a group of soldiers wants to move from a point to another point
     for (int i = 0; i < ATTACK_LIMIT; i++) {
         if (soldiers[i] == NULL)
@@ -226,49 +250,73 @@ void move(APP *app, POINT *array, SOLDIER **soldiers) {
             if (soldiers[i][j].killed == 1)
                 continue;
 
-            //the soldiers must start moving after each other not at the same time
-            if (soldiers[i][j].launch_counter < 10) {
-                soldiers[i][j].launch_counter += 1;
-                break;
-            } else if (soldiers[i][j].launch_counter == 10) {
-                array[soldiers[i][j].start_point].value -= 1;
-                soldiers[i][j].killed = 0;
-                soldiers[i][j].launch_counter += 1;
-            }
+            //freeze potion avoids thr opponent moving
+            if ((pot->player1_pot_number != 4 && pot->player2_pot_number != 4) ||
+                pot->player1_pot_number == 4 && soldiers[i][j].ownership == 1 ||
+                pot->player2_pot_number == 4 && soldiers[i][j].ownership == 2) {
 
-            //move the soldier and save its position
-            move_the_soldier(app, array, soldiers, i, j);
 
-            //the soldiers will be killed if they reached to each other
-            for (int k = 0; k < ATTACK_LIMIT; k++) {
-                if (soldiers[k] == NULL)
-                    continue;
-                for (int l = 0; l < soldiers[k][0].number_of_companions; l++) {
-                    if (soldiers[k][l].ownership != soldiers[i][j].ownership &&
-                        abs(soldiers[k][l].x - soldiers[i][j].x) < 10 &&
-                        abs(soldiers[k][l].y - soldiers[i][j].y) < 10) {
-                        soldiers[i][j].killed = 1;
-                        soldiers[k][l].killed = 1;
-                        soldiers[k][l].x = 0;
-                        soldiers[i][j].x = 0;
+                //the soldiers must start moving after each other not at the same time
+                if (soldiers[i][j].launch_counter < 10) {
+                    soldiers[i][j].launch_counter += 1;
+                    break;
+                } else if (soldiers[i][j].launch_counter == 10) {
+                    array[soldiers[i][j].start_point].value -= 1;
+                    soldiers[i][j].killed = 0;
+                    soldiers[i][j].launch_counter += 1;
+                }
+
+                //move the soldier and save its position
+                move_the_soldier(app, array, soldiers, i, j, pot);
+
+                //if a soldier reached a potion
+                if (*pot_number != -1 &&
+                    0 < (soldiers[i][j].x - pot_rect.x) && (soldiers[i][j].x - pot_rect.x) < 50 &&
+                    0 < (soldiers[i][j].y - pot_rect.y) && (soldiers[i][j].y - pot_rect.y) < 50) {
+                    if (soldiers[i][j].ownership == 1 && pot->player1_pot_number == -1) {
+                        pot->player1_pot_number = *pot_number;
+                        pot->player1_counter = 1100;
+                        *pot_number = -1;
+                    } else if (soldiers[i][j].ownership == 2 && pot->player2_pot_number == -1) {
+                        pot->player2_pot_number = *pot_number;
+                        pot->player2_counter = 1100;
+                        *pot_number = -1;
+                    }
+                }
+
+                //the soldiers will be killed if they reached to each other
+                for (int k = 0; k < ATTACK_LIMIT; k++) {
+                    if (soldiers[k] == NULL)
+                        continue;
+                    for (int l = 0; l < soldiers[k][0].number_of_companions; l++) {
+                        if (soldiers[k][l].ownership != soldiers[i][j].ownership &&
+                            abs(soldiers[k][l].x - soldiers[i][j].x) < 10 &&
+                            abs(soldiers[k][l].y - soldiers[i][j].y) < 10) {
+                            soldiers[i][j].killed = 1;
+                            soldiers[k][l].killed = 1;
+                            soldiers[k][l].x = 0;
+                            soldiers[i][j].x = 0;
+                        }
+                    }
+                }
+
+                //if the soldier reached the destination
+                int dest_x = array[soldiers[i][j].end_point].x;
+                int dest_y = array[soldiers[i][j].end_point].y;
+                if (abs(soldiers[i][j].x - dest_x) < 8 && abs(soldiers[i][j].y - dest_y) < 8) {
+                    soldiers[i][j].killed = true;
+                    if (array[soldiers[i][j].end_point].value == 0) {
+                        array[soldiers[i][j].end_point].ownership = soldiers[i][j].ownership;
+                        array[soldiers[i][j].end_point].value += 1;
+                    } else if (array[soldiers[i][j].end_point].ownership == soldiers[i][j].ownership) {
+                        array[soldiers[i][j].end_point].value += 1;
+                    } else {
+                        array[soldiers[i][j].end_point].value -= 1;
+//                        if(soldiers[i][j].ownership == 1 and)
                     }
                 }
             }
 
-            //if the soldier reached the destination
-            int dest_x = array[soldiers[i][j].end_point].x;
-            int dest_y = array[soldiers[i][j].end_point].y;
-            if (abs(soldiers[i][j].x - dest_x) < 8 && abs(soldiers[i][j].y - dest_y) < 8) {
-                soldiers[i][j].killed = true;
-                if (array[soldiers[i][j].end_point].value == 0) {
-                    array[soldiers[i][j].end_point].ownership = soldiers[i][j].ownership;
-                    array[soldiers[i][j].end_point].value += 1;
-                } else if (array[soldiers[i][j].end_point].ownership == soldiers[i][j].ownership) {
-                    array[soldiers[i][j].end_point].value += 1;
-                } else {
-                    array[soldiers[i][j].end_point].value -= 1;
-                }
-            }
             //print the soldiers
             if (soldiers[i][j].killed != 1) {
                 if (soldiers[i][j].ownership == 1)
@@ -281,16 +329,17 @@ void move(APP *app, POINT *array, SOLDIER **soldiers) {
 }
 
 
-void make_soldier(POINT *array, int number_of_points) {
+void make_soldier(POINT *array, int number_of_points, POT *pot) {
     for (int i = 0; i < number_of_points; i++) {
-        //        if (array[i].ownership == 0 && array[i].value < 10) {
-        //            array[i].value += 1;
-        //        }
         if (array[i].ownership == 1 && array[i].value < 50) {
             array[i].value += 1;
+            if (pot->player1_pot_number == 3)
+                array[i].value += 2;
         }
         if (array[i].ownership == 2 && array[i].value < 80) {
             array[i].value += 1;
+            if (pot->player2_pot_number == 3)
+                array[i].value += 2;
         }
     }
 }
@@ -307,12 +356,6 @@ void arrow(APP *app, int x1, int y1, int x2, int y2, double width, Uint32 color)
     T[2].x = x2 - 1.4 * width * sin(angle);
     T[2].y = y2 - 1.4 * width * cos(angle);
     filledTrigonColor(app->renderer, T[0].x, T[0].y, T[1].x, T[1].y, T[2].x, T[2].y, color);
-}
-
-
-void print_text(char *string, char *font_path, int size, SDL_Color color, SDL_Color background_color, int x, int y,
-                APP *app) {
-
 }
 
 
@@ -532,7 +575,8 @@ bool select_map(APP *app, POINT *array, int *number_of_points) {
             if (!random_generated) {
                 char path[100] = {'\0'};
                 strcat(path, first_path);
-                itoa(map_number, num, 10);
+                sprintf(num, "%d", map_number);
+//                itoa(map_number, num, 10);
                 strcat(path, num);
                 strcat(path, ".dat");
                 FILE *file = fopen(path, "rb");
@@ -766,10 +810,73 @@ present_second_screen(APP *app, SDL_Texture *image_texture, POINT *array, int *n
 }
 
 
-int main(int argc, char *argv[]) {
+void render_active_potions(APP *app, POT *pot, SDL_Texture *pot1_tex, SDL_Texture *pot2_tex, SDL_Texture *pot3_tex,
+                           SDL_Texture *pot4_tex) {
+    //render player 1 potions
+    if (pot->player1_pot_number != -1) {
+        SDL_Rect pot_rect_active = {SCREEN_WIDTH - 90, 10, 80, 80};
+        boxRGBA(app->renderer, SCREEN_WIDTH - 100, 0, SCREEN_WIDTH, 120, 73, 240, 67, 210);
+        char str[20] = {'\0'};
+        switch (pot->player1_pot_number) {
+            case 1:
+                SDL_RenderCopy(app->renderer, pot1_tex, NULL, &pot_rect_active);
+                strcpy(str, " X2 speed");
+                break;
+            case 2:
+                SDL_RenderCopy(app->renderer, pot2_tex, NULL, &pot_rect_active);
+                strcpy(str, "Anti attack");
+                break;
+            case 3:
+                SDL_RenderCopy(app->renderer, pot3_tex, NULL, &pot_rect_active);
+                strcpy(str, " X3 making");
+                break;
+            case 4:
+                SDL_RenderCopy(app->renderer, pot4_tex, NULL, &pot_rect_active);
+                strcpy(str, "  Frozen");
+                break;
+            default:
+                break;
+        }
+        stringColor(app->renderer, SCREEN_WIDTH - 90, 100, str, 0xff000000);
+    }
 
+    //render player 2 potions
+    if (pot->player2_pot_number != -1) {
+        SDL_Rect pot_rect_active = {10, 10, 80, 80};
+        boxRGBA(app->renderer, 0, 0, 100, 120, 222, 13, 13, 210);
+        char str[20] = {'\0'};
+        switch (pot->player2_pot_number) {
+            case 1:
+                SDL_RenderCopy(app->renderer, pot1_tex, NULL, &pot_rect_active);
+                strcpy(str, " X2 speed");
+                break;
+            case 2:
+                SDL_RenderCopy(app->renderer, pot2_tex, NULL, &pot_rect_active);
+                strcpy(str, "Anti attack");
+                break;
+            case 3:
+                SDL_RenderCopy(app->renderer, pot3_tex, NULL, &pot_rect_active);
+                strcpy(str, " X3 making");
+                break;
+            case 4:
+                SDL_RenderCopy(app->renderer, pot4_tex, NULL, &pot_rect_active);
+                strcpy(str, "  Frozen");
+                break;
+            default:
+                break;
+        }
+        stringColor(app->renderer, 5, 100, str, 0xff000000);
+    }
+}
+
+
+int main(int argc, char *argv[]) {
+    int pot_number = -1;
+    SDL_Rect pot_rect;
     int starting_point = -1;
     int soldier_making_counter = 0;
+    int potion_making_counter = 0;
+    int potion_making_timeout = random_between(700, 1800);
     srand((int) sin((double) time(0)) * time(0));
 
 
@@ -815,6 +922,31 @@ int main(int argc, char *argv[]) {
     SDL_FreeSurface(image);
     SDL_DestroyTexture(image_texture);
 
+    //load potions
+    SDL_Surface *pot1_surf = IMG_Load("../media/purple.png");
+    SDL_Texture *pot1_tex = SDL_CreateTextureFromSurface(app->renderer, pot1_surf);
+    SDL_Surface *pot2_surf = IMG_Load("../media/sam.png");
+    SDL_Texture *pot2_tex = SDL_CreateTextureFromSurface(app->renderer, pot2_surf);
+    SDL_Surface *pot3_surf = IMG_Load("../media/red.png");
+    SDL_Texture *pot3_tex = SDL_CreateTextureFromSurface(app->renderer, pot3_surf);
+    SDL_Surface *pot4_surf = IMG_Load("../media/yellow.png");
+    SDL_Texture *pot4_tex = SDL_CreateTextureFromSurface(app->renderer, pot4_surf);
+
+//    SDL_Texture *pot4_tex = IMG_LoadTexture(app->renderer,"../media/yellow.png");
+//    SDL_QueryTexture(pot4_tex,NULL,NULL,NULL,NULL);
+    //////////////////////////////////////////////////
+    int a = random_between(0, number_of_points - 1);
+    int b = random_between(0, number_of_points - 1) % (number_of_points - 1) + 1;
+    pot_rect.x = (array[a].x + array[b].x) / 2 - 10;
+    pot_rect.y = (array[a].y + array[b].y) / 2 - 10;
+    pot_rect.w = pot_rect.h = 50;
+////////////////////////////////////////////////////////
+
+
+
+    POT pot = {.player1_pot_number = -1, .player2_pot_number = -1};
+
+
     SDL_Event event;
     bool quit = false;
     while (!quit) {
@@ -840,7 +972,22 @@ int main(int argc, char *argv[]) {
                     int ending_point = witch_point(event.button.x, event.button.y, array, number_of_points);
                     if (ending_point != -1 && ending_point != starting_point) {
 
+                        //pot4 => freeze potion
+                        if (array[starting_point].ownership == 1 && pot.player2_pot_number == 4 ||
+                            array[starting_point].ownership == 2 && pot.player1_pot_number == 4) {
+                            starting_point = -1;
+                            break;
+                        }
 
+                        //pot2 => anti attack potion
+                        if (array[starting_point].ownership == 2 && pot.player1_pot_number == 2 ||
+                            array[starting_point].ownership == 1 && pot.player2_pot_number == 2) {
+                            if (array[ending_point].ownership != array[starting_point].ownership &&
+                                array[ending_point].ownership != 0) {
+                                starting_point = -1;
+                                break;
+                            }
+                        }
                         int already_reserved_soldiers = 0;
                         for (int i = 0; i < ATTACK_LIMIT; i++) {
                             if (soldiers[i] != NULL && soldiers[i][0].start_point == starting_point) {
@@ -855,6 +1002,8 @@ int main(int argc, char *argv[]) {
                         int i = 0;
                         while (soldiers[i] != NULL && i < ATTACK_LIMIT)
                             i++;
+                        if (i == ATTACK_LIMIT)
+                            break;
                         soldiers[i] = calloc(number_of_soldiers + 1, sizeof(SOLDIER));
                         for (int j = 0; j < number_of_soldiers; j++) {
                             soldiers[i][j].ownership = array[starting_point].ownership;
@@ -891,11 +1040,28 @@ int main(int argc, char *argv[]) {
         soldier_making_counter++;
         if (soldier_making_counter > 100) {
             soldier_making_counter = 0;
-            make_soldier(array, number_of_points);
+            make_soldier(array, number_of_points, &pot);
         }
 
-        //////render the screen//////
+        //timer for disappearing the potion on screen
+        if (potion_making_counter > 400) {
+            pot_number = -1;
+        }
 
+        //timer for deactivating the potions
+        if (pot.player1_counter > 0)
+            pot.player1_counter -= 1;
+        else
+            pot.player1_pot_number = -1;
+        if (pot.player2_counter > 0)
+            pot.player2_counter -= 1;
+        else
+            pot.player2_pot_number = -1;
+
+
+
+
+        ////////////////render the screen////////////////
 
         //render background image
         SDL_RenderClear(app->renderer);
@@ -904,14 +1070,58 @@ int main(int argc, char *argv[]) {
         //render the map
         draw_the_map(app, array, number_of_points);
 
+        //render the potions
+        potion_making_counter++;
+        if (pot_number != -1) {
+            switch (pot_number) {
+                case 1:
+                    SDL_RenderCopy(app->renderer, pot1_tex, NULL, &pot_rect);
+                    break;
+                case 2:
+                    SDL_RenderCopy(app->renderer, pot2_tex, NULL, &pot_rect);
+                    break;
+                case 3:
+                    SDL_RenderCopy(app->renderer, pot3_tex, NULL, &pot_rect);
+                    break;
+                case 4:
+                    SDL_RenderCopy(app->renderer, pot4_tex, NULL, &pot_rect);
+                    break;
+            }
+        }
+        //potion making
+        if (potion_making_counter > potion_making_timeout) {
+            potion_making_counter = 0;
+            potion_making_timeout = random_between(1000, 2000);
+            pot_rect.w = pot_rect.h = 50;
+            quit = false;
+            while (!quit) {
+                int a = random_between(0, number_of_points - 1);
+                int b = random_between(0, number_of_points - 1) % (number_of_points - 1) + 1;
+                pot_rect.x = (array[a].x + array[b].x) / 2 - 25;
+                pot_rect.y = (array[a].y + array[b].y) / 2 - 25;
+                POINT pot_location = {.x = pot_rect.x + 25, .y = pot_rect.y + 25, .r = 5};
+                quit = true;
+                for (int i = 0; i < number_of_points; i++) {
+                    if (bad_distance(pot_location, array[i])) {
+                        quit = false;
+                        break;
+                    }
+                }
+            }
+            quit = false;
+            pot_number = random_between(1, 4);
+        }
+
+        render_active_potions(app, &pot, pot1_tex, pot2_tex, pot3_tex, pot4_tex);
+
         //render soldiers
-        move(app, array, soldiers);
+        move(app, array, soldiers, pot_rect, &pot_number, &pot);
 
         //render arrow
         if (starting_point != -1) {
             int x_mouse, y_mouse;
             SDL_GetMouseState(&x_mouse, &y_mouse);
-            arrow(app, array[starting_point].x, array[starting_point].y, x_mouse, y_mouse, 15, 0xFFaaaaaa);
+            arrow(app, array[starting_point].x, array[starting_point].y, x_mouse, y_mouse, 15, 0xFFaaabaa);
         }
 
         SDL_RenderPresent(app->renderer);
@@ -921,9 +1131,10 @@ int main(int argc, char *argv[]) {
     //free memory and exit
     SDL_FreeSurface(_image);
     SDL_DestroyTexture(_image_texture);
+    SDL_FreeSurface(pot1_surf);
+    SDL_FreeSurface(pot2_surf);
+    SDL_FreeSurface(pot3_surf);
+//    SDL_FreeSurface(pot4_surf);
     die(app);
 }
 
-
-//        SDL_Rect dstrect = { 200, 200, 50, 50 };
-//        SDL_RenderCopy(renderer, texture, NULL, &dstrect);
