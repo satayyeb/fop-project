@@ -44,7 +44,7 @@ set_property(TARGET SDL2_TTF_DLL    PROPERTY IMPORTED_LOCATION "${SDL2_TTF_LIB_D
 
 
 
-set(SDL2_LIBS mingw32 SDL2 SDL2main SDL2_GFX SDL2_TTF_DLL SDL2_IMAGE_DLL m dinput8 dxguid dxerr8 user32 gdi32 winmm imm32 ole32 oleaut32 shell32 version uuid)
+set(SDL2_LIBS mingw32 SDL2main SDL2 SDL2_GFX SDL2_IMAGE_DLL SDL2_TTF_DLL m dinput8 dxguid dxerr8 user32 gdi32 winmm imm32 ole32 oleaut32 shell32 version uuid)
 #set(SDL2_LIBS SDL2 SDL2main SDL2_GFX SDL2_TTF_DLL SDL2_IMAGE_DLL)
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 ${SDL2_FLAGS}")

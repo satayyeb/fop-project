@@ -32,6 +32,8 @@ typedef struct APP {
     SDL_Window *window;
     SDL_Renderer *renderer;
     TTF_Font *font;
+    char user[100];
+    int coin;
 } APP;
 
 typedef struct COORDINATE {
@@ -136,7 +138,7 @@ bool init(APP *app) {
         printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
         return false;
     }
-    app->window = SDL_CreateWindow("state.SAT", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH,
+    app->window = SDL_CreateWindow("island soldiers", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH,
                                    SCREEN_HEIGHT,
                                    SDL_WINDOW_OPENGL);
     if (app->window == NULL) {
@@ -188,7 +190,6 @@ int line_between_start_end(int x, float a, int xf, int yf) {
     //= yi = axf - axi + yf
     return (int) (a * (float) xf - a * (float) x + (float) yf);
 }
-
 
 
 void move_the_soldier(APP *app, POINT *array, SOLDIER **soldiers, int i, int j, POT *pot) {
@@ -508,6 +509,31 @@ bool present_first_screen(APP *app, SDL_Texture *image_texture) {
 
     }
 
+
+    //users files
+    char str[100];
+    int coin = 0;
+    FILE *file = fopen("../data/users.dat", "ab+");
+    for (int i = 0; i < 50; i++) {
+        fread(&coin, sizeof(int),1,file);
+        if (feof(file)) {
+            strcpy(app->user,text);
+            app->coin = 100;
+            fwrite(&coin,sizeof(int),1,file);
+            fwrite(text,1,100,file);
+            break;
+        }
+        fread(str,1,100,file);
+        if (strcmp(str, text) == 0) {
+            strcpy(app->user,text);
+            app->coin = coin;
+            break;
+        }
+    }
+    fclose(file);
+
+
+
     SDL_DestroyTexture(texture_huge);
     SDL_FreeSurface(surface_huge);
     printf("huge freed successfully\n");
@@ -558,8 +584,8 @@ bool select_map(APP *app, POINT *array, int *number_of_points) {
 
     SDL_Event event;
 
-    char first_path[] = "../data/pre-made-maps/map";
-    char num[3] = {'\0'};
+    char first_path[] = "../data/pre-made-maps/";
+    char str[20] = {'\0'};
     int map_number = 1;
     bool free_and_exit = false;
     bool render = true;
@@ -573,14 +599,27 @@ bool select_map(APP *app, POINT *array, int *number_of_points) {
         if (render) {
 
             if (!random_generated) {
+                FILE *file = fopen("../data/pre-made-maps/maps-list.txt", "r");
+                if (file == NULL) {
+                    render = false;
+                    printf("maps-list.txt not found \n");
+                    continue;
+                }
+                for (int i = 1; i <= map_number; i++) {
+                    fgets(str, 19, file);
+                    if (feof(file)) {
+                        map_number = i - 1;
+                        break;
+                    }
+                }
+                fclose(file);
                 char path[100] = {'\0'};
                 strcat(path, first_path);
-                sprintf(num, "%d", map_number);
-//                itoa(map_number, num, 10);
-                strcat(path, num);
-                strcat(path, ".dat");
-                FILE *file = fopen(path, "rb");
+                strcat(path, str);
+                path[strlen(path) - 1] = '\0';
+                file = fopen(path, "rb");
                 if (file == NULL) {
+                    printf("\n%s not found \n", path);
                     render = false;
                     continue;
                 }
@@ -634,7 +673,7 @@ bool select_map(APP *app, POINT *array, int *number_of_points) {
                             *number_of_points = generate_random_map(array, app);
                             random_generated = true;
                             render = 1;
-                        } else if (720 < x_mouse && x_mouse < 880 && map_number < 10) { //next
+                        } else if (720 < x_mouse && x_mouse < 880) { //next
                             map_number++;
                             render = 1;
                         }
@@ -932,15 +971,15 @@ int main(int argc, char *argv[]) {
     SDL_Surface *pot4_surf = IMG_Load("../media/yellow.png");
     SDL_Texture *pot4_tex = SDL_CreateTextureFromSurface(app->renderer, pot4_surf);
 
-//    SDL_Texture *pot4_tex = IMG_LoadTexture(app->renderer,"../media/yellow.png");
-//    SDL_QueryTexture(pot4_tex,NULL,NULL,NULL,NULL);
+
+
     //////////////////////////////////////////////////
     int a = random_between(0, number_of_points - 1);
     int b = random_between(0, number_of_points - 1) % (number_of_points - 1) + 1;
     pot_rect.x = (array[a].x + array[b].x) / 2 - 10;
     pot_rect.y = (array[a].y + array[b].y) / 2 - 10;
     pot_rect.w = pot_rect.h = 50;
-////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////
 
 
 
