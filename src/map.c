@@ -1,15 +1,18 @@
 #include "globals.h"
 #include "map.h"
 
+
 bool bad_distance(POINT first, POINT second) {
     if (((int) (sqrt(pow(first.x - second.x, 2) + pow(first.y - second.y, 2)))) < (first.r + second.r))
         return 1;
     return 0;
 }
 
+
 int random_between(int start, int end) {
     return start + rand() % (end - start + 1);
 }
+
 
 int witch_point(int x, int y, POINT *array, int number_of_points) {
     POINT mouse = {x, y, 0};
@@ -18,6 +21,7 @@ int witch_point(int x, int y, POINT *array, int number_of_points) {
             return i;
         return -1;
 }
+
 
 int line_between_start_end(int x, float a, int xf, int yf) {
     //  yi - yf = a(xf - xi)
@@ -44,6 +48,7 @@ void draw_the_map(APP *app, POINT *array, int number_of_points) {
         stringRGBA(app->renderer, array[i].x - 6, array[i].y - 3, str, 0, 0, 0, 255);
     }
 }
+
 
 int generate_random_map(POINT array[15], APP *app) {
     int number_of_points = random_between(10, 15);
@@ -75,9 +80,11 @@ int generate_random_map(POINT array[15], APP *app) {
     }
     array[0].ownership = 1;
     array[5].ownership = 2;
+//    array[5].value = 20;
     draw_the_map(app, array, number_of_points);
     return number_of_points;
 }
+
 
 void move_the_soldier(APP *app, POINT *array, SOLDIER **soldiers, int i, int j, POT *pot) {
     int start_x = array[soldiers[i][j].start_point].x;
@@ -228,6 +235,7 @@ void make_soldier(POINT *array, int number_of_points, POT *pot) {
     }
 }
 
+
 void arrow(APP *app, int x1, int y1, int x2, int y2, double width, Uint32 color) {
     //TODO correcting the arrow and mouse positions
     thickLineColor(app->renderer, x1, y1, x2, y2, width, color);
@@ -241,6 +249,7 @@ void arrow(APP *app, int x1, int y1, int x2, int y2, double width, Uint32 color)
     T[2].y = y2 - 1.4 * width * cos(angle);
     filledTrigonColor(app->renderer, T[0].x, T[0].y, T[1].x, T[1].y, T[2].x, T[2].y, color);
 }
+
 
 void render_active_potions(APP *app, POT *pot, SDL_Texture *pot1_tex, SDL_Texture *pot2_tex, SDL_Texture *pot3_tex,
                            SDL_Texture *pot4_tex) {
@@ -298,6 +307,53 @@ void render_active_potions(APP *app, POT *pot, SDL_Texture *pot1_tex, SDL_Textur
                 break;
         }
         stringColor(app->renderer, 5, 100, str, 0xff000000);
+    }
+}
+
+
+void attack(APP*app, POINT*array,SOLDIER ** soldiers,int starting_point,int ending_point,POT*pot){
+
+    //pot4 => freeze potion
+    if (array[starting_point].ownership == 1 && pot->player2_pot_number == 4 ||
+    array[starting_point].ownership == 2 && pot->player1_pot_number == 4) {
+        starting_point = -1;
+        return ;
+    }
+
+    //pot2 => anti attack potion
+    if (array[starting_point].ownership == 2 && pot->player1_pot_number == 2 ||
+    array[starting_point].ownership == 1 && pot->player2_pot_number == 2) {
+        if (array[ending_point].ownership != array[starting_point].ownership &&
+        array[ending_point].ownership != 0) {
+            starting_point = -1;
+            return;
+        }
+    }
+    int already_reserved_soldiers = 0;
+    for (int i = 0; i < ATTACK_LIMIT; i++) {
+        if (soldiers[i] != NULL && soldiers[i][0].start_point == starting_point) {
+            for (int j = 0; j < soldiers[i][0].number_of_companions; ++j) {
+                if (soldiers[i][j].killed == -1) {
+                    already_reserved_soldiers += 1;
+                }
+            }
+        }
+    }
+    int number_of_soldiers = array[starting_point].value - already_reserved_soldiers;
+    int i = 0;
+    while (soldiers[i] != NULL && i < ATTACK_LIMIT)
+        i++;
+    if (i == ATTACK_LIMIT)
+        return;
+    soldiers[i] = calloc(number_of_soldiers + 1, sizeof(SOLDIER));
+    for (int j = 0; j < number_of_soldiers; j++) {
+        soldiers[i][j].ownership = array[starting_point].ownership;
+        soldiers[i][j].start_point = starting_point;
+        soldiers[i][j].end_point = ending_point;
+        soldiers[i][j].x = array[starting_point].x;
+        soldiers[i][j].y = array[starting_point].y;
+        soldiers[i][j].killed = -1;
+        soldiers[i][j].number_of_companions = number_of_soldiers;
     }
 }
 

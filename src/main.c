@@ -8,13 +8,67 @@
 #undef main
 #endif
 
-//
+
+void AI(APP *app, POINT *array, int number_of_points, SOLDIER **soldiers, POT *pot) {
+    int max_point = 0;
+    int max_value = 0;
+    for (int i = 0; i < number_of_points; i++) {
+        if (array[i].ownership == 2 && array[i].value > max_value) {
+            max_value = array[i].value;
+            max_point = i;
+        }
+    }
+    int min_point = 0;
+    int min_value = 1000;
+    for (int i = 0; i < number_of_points; i++) {
+        if (array[i].ownership != 2 && array[i].value < min_value) {
+            min_value = array[i].value;
+            min_point = i;
+        }
+    }
+    attack(app, array, soldiers, max_point, min_point, pot);
+}
+
+
+int who_won(POINT *array, int number_of_points, SOLDIER **soldiers) {
+    int I_win = true;
+    int AI_win = true;
+    for (int i = 0; i < number_of_points; i++) {
+        if (array[i].ownership == 1)
+            AI_win = false;
+
+        if (array[i].ownership == 2)
+            I_win = false;
+    }
+    for (int i = 0; i < ATTACK_LIMIT; i++) {
+        if (soldiers[i] == NULL)
+            continue;
+
+        if (soldiers[i]->ownership == 1)
+            AI_win = false;
+
+        if (soldiers[i]->ownership == 2)
+            I_win = false;
+    }
+    if (I_win)
+        return 1;
+
+    if(AI_win)
+        return 2;
+
+    return -1;
+}
+
+
 int main(int argc, char *argv[]) {
-    int pot_number = -1;
+    bool I_win;
+    bool AI_win;
     SDL_Rect pot_rect;
+    int pot_number = -1;
     int starting_point = -1;
     int soldier_making_counter = 0;
     int potion_making_counter = 0;
+    int AI_counter = 0;
     int potion_making_timeout = random_between(700, 1800);
     srand((int) sin((double) time(0)) * time(0));
 
@@ -73,7 +127,7 @@ int main(int argc, char *argv[]) {
 
 
 
-    //////////////////////////////////////////////////
+    ///////////////////////////////////////////////////////
     int a = random_between(0, number_of_points - 1);
     int b = random_between(0, number_of_points - 1) % (number_of_points - 1) + 1;
     pot_rect.x = (array[a].x + array[b].x) / 2 - 10;
@@ -110,49 +164,7 @@ int main(int argc, char *argv[]) {
                 if (event.button.button == SDL_BUTTON_LEFT && starting_point != -1) {
                     int ending_point = witch_point(event.button.x, event.button.y, array, number_of_points);
                     if (ending_point != -1 && ending_point != starting_point) {
-
-                        //pot4 => freeze potion
-                        if (array[starting_point].ownership == 1 && pot.player2_pot_number == 4 ||
-                            array[starting_point].ownership == 2 && pot.player1_pot_number == 4) {
-                            starting_point = -1;
-                            break;
-                        }
-
-                        //pot2 => anti attack potion
-                        if (array[starting_point].ownership == 2 && pot.player1_pot_number == 2 ||
-                            array[starting_point].ownership == 1 && pot.player2_pot_number == 2) {
-                            if (array[ending_point].ownership != array[starting_point].ownership &&
-                                array[ending_point].ownership != 0) {
-                                starting_point = -1;
-                                break;
-                            }
-                        }
-                        int already_reserved_soldiers = 0;
-                        for (int i = 0; i < ATTACK_LIMIT; i++) {
-                            if (soldiers[i] != NULL && soldiers[i][0].start_point == starting_point) {
-                                for (int j = 0; j < soldiers[i][0].number_of_companions; ++j) {
-                                    if (soldiers[i][j].killed == -1) {
-                                        already_reserved_soldiers += 1;
-                                    }
-                                }
-                            }
-                        }
-                        int number_of_soldiers = array[starting_point].value - already_reserved_soldiers;
-                        int i = 0;
-                        while (soldiers[i] != NULL && i < ATTACK_LIMIT)
-                            i++;
-                        if (i == ATTACK_LIMIT)
-                            break;
-                        soldiers[i] = calloc(number_of_soldiers + 1, sizeof(SOLDIER));
-                        for (int j = 0; j < number_of_soldiers; j++) {
-                            soldiers[i][j].ownership = array[starting_point].ownership;
-                            soldiers[i][j].start_point = starting_point;
-                            soldiers[i][j].end_point = ending_point;
-                            soldiers[i][j].x = array[starting_point].x;
-                            soldiers[i][j].y = array[starting_point].y;
-                            soldiers[i][j].killed = -1;
-                            soldiers[i][j].number_of_companions = number_of_soldiers;
-                        }
+                        attack(app, array, soldiers, starting_point, ending_point, &pot);
                     }
                 }
                 starting_point = -1;
@@ -173,6 +185,28 @@ int main(int argc, char *argv[]) {
                     fclose(file);
                 }
                 break;
+        }
+
+
+        switch (who_won(array, number_of_points, soldiers)) {
+            case 1:
+                //TODO you win
+                printf("I won!");
+                break;
+            case 2:
+                //TODO computer won!
+                printf("You lost!");
+                break;
+            default:
+                break;
+        }
+
+
+        //AI
+        AI_counter++;
+        if (AI_counter > 700) {
+            AI_counter = 0;
+            AI(app, array, number_of_points, soldiers, &pot);
         }
 
         //soldier making progress

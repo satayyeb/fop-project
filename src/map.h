@@ -1,7 +1,6 @@
 #ifndef ISLAND_SOLDIER_MAP_H
 #define ISLAND_SOLDIER_MAP_H
 
-#endif //ISLAND_SOLDIER_MAP_H
 
 
 bool bad_distance(POINT first, POINT second);
@@ -16,3 +15,6 @@ void move(APP *app, POINT *array, SOLDIER **soldiers, SDL_Rect pot_rect, int *po
 void make_soldier(POINT *array, int number_of_points, POT *pot);
 void arrow(APP *app, int x1, int y1, int x2, int y2, double width, Uint32 color);
 void render_active_potions(APP *app, POT *pot, SDL_Texture *pot1_tex, SDL_Texture *pot2_tex, SDL_Texture *pot3_tex,SDL_Texture *pot4_tex);
+void attack(APP*app, POINT*array,SOLDIER ** soldiers,int starting_point,int ending_point,POT*pot);
+
+#endif //ISLAND_SOLDIER_MAP_H

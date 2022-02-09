@@ -1,3 +1,6 @@
+#ifndef ISLAND_SOLDIER_GLOBALS_H
+#define ISLAND_SOLDIER_GLOBALS_H
+
 #include <SDL.h>
 #include <SDL2_gfxPrimitives.h>
 #include <SDL_image.h>
@@ -9,10 +12,7 @@
 #include <math.h>
 #include <string.h>
 
-#ifndef ISLAND_SOLDIER_GLOBALS_H
-#define ISLAND_SOLDIER_GLOBALS_H
 
-#endif //ISLAND_SOLDIER_GLOBALS_H
 
 
 #define DARK_GREEN      0xaa18851a
@@ -68,3 +68,6 @@ typedef struct SOLDIER {
     int killed;
     int number_of_companions;
 } SOLDIER;
+
+
+#endif //ISLAND_SOLDIER_GLOBALS_H
