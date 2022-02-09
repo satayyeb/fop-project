@@ -1,7 +1,76 @@
 #include "globals.h"
 #include "map.h"
 #include "menu.h"
+#include "init.h"
 
+bool show_scores(APP *app, SDL_Texture *image_texture) {
+
+    SDL_RenderClear(app->renderer);
+    SDL_RenderCopy(app->renderer, image_texture, NULL, NULL);
+    roundedBoxColor(app->renderer, 350, 200, SCREEN_WIDTH - 350, 500, 5, 0xddb03c30);
+
+    stringRGBA(app->renderer, 400, 480, "press any key to return...", 255, 255, 255, 255);
+
+    char users[17][100];
+    int coin[17];
+    int number_of_users = 0;
+    FILE *file = fopen("../data/users.dat", "rb");
+    if (file == NULL) {
+        printf("can not open users file in scores");
+        return 0;
+    }
+    fread(&number_of_users, sizeof(number_of_users), 1, file);
+    if (number_of_users > 17)
+        number_of_users = 17;
+    for (int i = 0; i < number_of_users; i++) {
+        fread(users[i], 1, 100, file);
+        fread(&coin[i], sizeof(int), 1, file);
+    }
+    fclose(file);
+
+    int sort[17] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+    if (number_of_users > 1) {
+        //sort the table
+        for (int i = 0; i < number_of_users - 1; i++) {
+            for (int j = i; j < number_of_users; j++) {
+                if (coin[sort[i]] < coin[sort[j]]) {
+                    int buff = sort[i];
+                    sort[i] = sort[j];
+                    sort[j] = buff;
+                }
+            }
+        }
+    }
+
+    //print the table
+    char str[5] = {'\0'};
+    for (int i = 0; i < number_of_users; i++) {
+        stringRGBA(app->renderer, 400, 220 + i * 15, users[sort[i]], 255, 255, 255, 255);
+        sprintf(str, "%d", coin[sort[i]]);
+        stringRGBA(app->renderer, 580, 220 + i * 15, str, 255, 255, 255, 255);
+    }
+    SDL_RenderPresent(app->renderer);
+
+    SDL_Event event;
+    bool quit = false;
+    while (!quit) {
+
+        SDL_Delay(30);
+        SDL_PollEvent(&event);
+
+        switch (event.type) {
+            case SDL_QUIT:
+                die(app);
+                quit = true;
+                return 0;
+                break;
+
+            case SDL_KEYDOWN:
+                quit = 1;
+                return 1;
+        }
+    }
+}
 
 bool present_first_screen(APP *app, SDL_Texture *image_texture) {
 
@@ -356,40 +425,24 @@ bool select_map(APP *app, POINT *array, int *number_of_points) {
 
 
 bool
-present_second_screen(APP *app, SDL_Texture *image_texture, POINT *array, int *number_of_points, SOLDIER **soldiers) {
-
+present_second_screen(APP *app, SDL_Texture *image_texture, POINT *array, int *number_of_points, SOLDIER **soldiers,
+                      POT *pot) {
     SDL_RenderClear(app->renderer);
-    printf("renderer cleared successfully\n");
-    SDL_RenderCopy(app->renderer, image_texture, NULL, NULL);
-    printf("image copied successfully\n");
-    roundedBoxColor(app->renderer, 350, 180, SCREEN_WIDTH - 350, 270, 5, 0xddb03c30);
-    roundedBoxColor(app->renderer, 350, 280, SCREEN_WIDTH - 350, 370, 5, 0xddb03c30);
-    roundedBoxColor(app->renderer, 350, 380, SCREEN_WIDTH - 350, 470, 5, 0xddb03c30);
-    printf("boxes rendered successfully\n");
+
+
     SDL_Color text_color_white = {255, 255, 255, 255};
     SDL_Color background_color = {0, 0, 0, 1};
     int text_width, text_height;
 
-
-    printf("df\n");
     TTF_SizeText(app->font, "NEW GAME", &text_width, &text_height);
     SDL_Rect rect1 = {(SCREEN_WIDTH - text_width) / 2, 205, text_width, text_height};
     app->surface[8] = TTF_RenderText_Shaded(app->font, "NEW GAME", text_color_white, background_color);
-    if (app->surface[8] == NULL) {
-        printf("surface 1 is null :(");
-        exit(-1);
-    }
     app->texture[8] = SDL_CreateTextureFromSurface(app->renderer, app->surface[8]);
-    if (app->texture[8] == NULL) {
-        printf("texture 1 is null :(");
-        exit(-1);
-    }
 
 
-    printf("I still alive... 1");
     TTF_SizeText(app->font, "LOAD GAME", &text_width, &text_height);
     SDL_Rect rect2 = {(SCREEN_WIDTH - text_width) / 2, 305, text_width, text_height};
-    app->surface[9]= TTF_RenderText_Shaded(app->font, "LOAD GAME", text_color_white, background_color);
+    app->surface[9] = TTF_RenderText_Shaded(app->font, "LOAD GAME", text_color_white, background_color);
     app->texture[9] = SDL_CreateTextureFromSurface(app->renderer, app->surface[9]);
     if (app->texture[9] == NULL) {
         printf("texture 2 is null :(");
@@ -406,21 +459,34 @@ present_second_screen(APP *app, SDL_Texture *image_texture, POINT *array, int *n
         exit(-1);
     }
 
-
-    printf("I still alive... 3");
-    SDL_RenderCopy(app->renderer, app->texture[8], NULL, &rect1);
-    SDL_RenderCopy(app->renderer, app->texture[9], NULL, &rect2);
-    SDL_RenderCopy(app->renderer, app->texture[10], NULL, &rect3);
-    printf("I still alive... ghodrat ");
-    SDL_RenderPresent(app->renderer);
     printf("rendered seccessfully");
 
     SDL_Event event;
     bool free_and_exit = false;
+    bool render = true;
     bool quit = false;
     while (!quit) {
+
+        if (render) {
+            SDL_RenderCopy(app->renderer, image_texture, NULL, NULL);
+            roundedBoxColor(app->renderer, 350, 180, SCREEN_WIDTH - 350, 270, 5, 0xddb03c30);
+            roundedBoxColor(app->renderer, 350, 280, SCREEN_WIDTH - 350, 370, 5, 0xddb03c30);
+            roundedBoxColor(app->renderer, 350, 380, SCREEN_WIDTH - 350, 470, 5, 0xddb03c30);
+            roundedBoxColor(app->renderer, 400, 50, SCREEN_WIDTH - 400, 100, 5, 0xddffffff);
+            stringRGBA(app->renderer, 465, 70, "coin:", 0, 0, 0, 255);
+            char str[5] = {'\0'};;
+            sprintf(str, "%d", app->coin);
+            stringRGBA(app->renderer, 515, 70, str, 0, 0, 0, 255);
+            SDL_RenderCopy(app->renderer, app->texture[8], NULL, &rect1);
+            SDL_RenderCopy(app->renderer, app->texture[9], NULL, &rect2);
+            SDL_RenderCopy(app->renderer, app->texture[10], NULL, &rect3);
+            SDL_RenderPresent(app->renderer);
+            render = false;
+        }
+
         SDL_Delay(10);
         SDL_PollEvent(&event);
+
         switch (event.type) {
             case SDL_QUIT:
                 free_and_exit = true;
@@ -443,6 +509,10 @@ present_second_screen(APP *app, SDL_Texture *image_texture, POINT *array, int *n
                             FILE *file = fopen("../data/data.dat", "rb");
                             if (file == NULL)
                                 break;
+                            fread(&pot->player1_pot_number, sizeof(int), 1, file);
+                            fread(&pot->player2_pot_number, sizeof(int), 1, file);
+                            fread(&pot->player1_counter, sizeof(int), 1, file);
+                            fread(&pot->player2_counter, sizeof(int), 1, file);
                             fread(number_of_points, sizeof(*number_of_points), 1, file);
                             fread(array, sizeof(array[0]), *number_of_points, file);
                             int count = 0;
@@ -460,22 +530,17 @@ present_second_screen(APP *app, SDL_Texture *image_texture, POINT *array, int *n
                             quit = true;
 
                         }
-
-                    } else if (380 < y_mouse && y_mouse < 470) { //scores
-
+                        if (380 < y_mouse && y_mouse < 470) { //scores
+//                          printf("haha\n");
+                            show_scores(app, image_texture);
+                            render = true;
+                        }
                     }
                 }
                 break;
         }
 
         if (quit || free_and_exit) {
-//            SDL_FreeSurface(app->surface1);
-//            SDL_FreeSurface(app->surface2);
-//            SDL_FreeSurface(app->surface3);
-//            SDL_DestroyTexture(app->texture1);
-//            SDL_DestroyTexture(app->texture2);
-//            SDL_DestroyTexture(app->texture3);
-
             quit = true;
         }
     }

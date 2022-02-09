@@ -5,6 +5,7 @@
 #include <SDL2_gfxPrimitives.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
