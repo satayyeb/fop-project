@@ -43,7 +43,6 @@ void draw_the_map(APP *app, POINT *array, int number_of_points) {
             filledCircleColor(app->renderer, array[i].x, array[i].y, array[i].r, LIGHT_BLUE);
             filledCircleColor(app->renderer, array[i].x, array[i].y, 20, DARK_BLUE);
         }
-        //        itoa(array[i].value, str, 10);
         sprintf(str, "%d", array[i].value);
         stringRGBA(app->renderer, array[i].x - 6, array[i].y - 3, str, 0, 0, 0, 255);
     }
@@ -166,11 +165,11 @@ void move(APP *app, POINT *array, SOLDIER **soldiers, SDL_Rect pot_rect, int *po
                     0 < (soldiers[i][j].y - pot_rect.y) && (soldiers[i][j].y - pot_rect.y) < 50) {
                     if (soldiers[i][j].ownership == 1 && pot->player1_pot_number == -1) {
                         pot->player1_pot_number = *pot_number;
-                        pot->player1_counter = 1100;
+                        pot->player1_counter = 1300;
                         *pot_number = -1;
                     } else if (soldiers[i][j].ownership == 2 && pot->player2_pot_number == -1) {
                         pot->player2_pot_number = *pot_number;
-                        pot->player2_counter = 1100;
+                        pot->player2_counter = 1300;
                         *pot_number = -1;
                     }
                 }
@@ -203,7 +202,6 @@ void move(APP *app, POINT *array, SOLDIER **soldiers, SDL_Rect pot_rect, int *po
                         array[soldiers[i][j].end_point].value += 1;
                     } else {
                         array[soldiers[i][j].end_point].value -= 1;
-                        //                        if(soldiers[i][j].ownership == 1 and)
                     }
                 }
             }
@@ -329,6 +327,7 @@ void attack(APP*app, POINT*array,SOLDIER ** soldiers,int starting_point,int endi
             return;
         }
     }
+
     int already_reserved_soldiers = 0;
     for (int i = 0; i < ATTACK_LIMIT; i++) {
         if (soldiers[i] != NULL && soldiers[i][0].start_point == starting_point) {
@@ -369,10 +368,19 @@ void AI(APP *app, POINT *array, int number_of_points, SOLDIER **soldiers, POT *p
     }
     int min_point = 0;
     int min_value = 1000;
-    for (int i = 0; i < number_of_points; i++) {
-        if (array[i].ownership != 2 && array[i].value < min_value) {
-            min_value = array[i].value;
-            min_point = i;
+    if(pot->player1_pot_number == 2){
+        for (int i = 0; i < number_of_points; i++) {
+            if (array[i].ownership != 1 && array[i].value < min_value) {
+                min_value = array[i].value;
+                min_point = i;
+            }
+        }
+    }else{
+        for (int i = 0; i < number_of_points; i++) {
+            if (array[i].ownership != 2 && array[i].value < min_value) {
+                min_value = array[i].value;
+                min_point = i;
+            }
         }
     }
     attack(app, array, soldiers, max_point, min_point, pot);

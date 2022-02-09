@@ -2,8 +2,7 @@
 #include "init.h"
 #include "menu.h"
 #include "map.h"
-
-#include "../sdl2/sdl2-mixer-include/SDL2/SDL_mixer.h"
+//#include "../sdl2/sdl2-mixer-include/SDL2/SDL_mixer.h"
 
 #ifdef main
 #undef main
@@ -11,15 +10,15 @@
 
 
 int main(int argc, char *argv[]) {
-    POT pot;
     bool I_win;
     bool AI_win;
+    POT pot;
     SDL_Rect pot_rect;
+    int AI_counter = 0;
     int pot_number = -1;
     int starting_point = -1;
-    int soldier_making_counter = 0;
     int potion_making_counter = 0;
-    int AI_counter = 0;
+    int soldier_making_counter = 0;
     int potion_making_timeout = random_between(700, 1800);
     srand((int) sin((double) time(0)) * time(0));
 
@@ -29,9 +28,9 @@ int main(int argc, char *argv[]) {
         die(app);
     }
 
+    app->first_run = true;
 
-
-    //load background image
+    //load background image (sea and beach)
     app->surface[15] = IMG_Load("../media/sea3.jpg");
     app->texture[15] = SDL_CreateTextureFromSurface(app->renderer, app->surface[15]);
     if (app->texture[15] == NULL) {
@@ -54,7 +53,6 @@ int main(int argc, char *argv[]) {
     }
 
 
-
     //load potions
     app->surface[11] = IMG_Load("../media/purple.png");
     app->texture[11] = SDL_CreateTextureFromSurface(app->renderer, app->surface[11]);
@@ -65,19 +63,21 @@ int main(int argc, char *argv[]) {
     app->surface[14] = IMG_Load("../media/yellow.png");
     app->texture[14] = SDL_CreateTextureFromSurface(app->renderer, app->surface[14]);
 
+
     if (!present_first_screen(app, app->texture[16]))
         die(app);
 
     bool quit = false;
     while (!quit) {
 
+        //at the start there are not an active potion
         pot.player1_pot_number = pot.player2_pot_number = -1;
 
         if (!present_second_screen(app, app->texture[16], array, &number_of_points, soldiers,&pot)) {
             die(app);
         }
 
-
+        app->first_run = false;
         char coin_str[5];
         sprintf(coin_str, "%d", app->coin);
 
@@ -131,7 +131,6 @@ int main(int argc, char *argv[]) {
                     }
                     break;
             }
-
 
 
             //AI
@@ -193,10 +192,11 @@ int main(int argc, char *argv[]) {
                         break;
                 }
             }
+
             //potion making
             if (potion_making_counter > potion_making_timeout) {
                 potion_making_counter = 0;
-                potion_making_timeout = random_between(1000, 2000);
+                potion_making_timeout = random_between(800, 1800);
                 pot_rect.w = pot_rect.h = 50;
                 quit = false;
                 while (!quit) {
@@ -230,7 +230,6 @@ int main(int argc, char *argv[]) {
             }
 
 
-            stringRGBA(app->renderer, SCREEN_WIDTH / 2 - 80, 20, coin_str, 0, 0, 0, 255);
             SDL_RenderPresent(app->renderer);
             SDL_Delay(5);
 
@@ -248,7 +247,7 @@ int main(int argc, char *argv[]) {
             }
         }
 
-
+        //save in file
         int number_of_users = 0;
         int coin;
         char str[100];

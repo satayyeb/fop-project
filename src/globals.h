@@ -32,9 +32,10 @@
 
 
 typedef struct APP {
-    SDL_Window *window;
     SDL_Renderer *renderer;
+    SDL_Window *window;
     TTF_Font *font;
+    bool first_run;
     char user[100];
     int coin;
     SDL_Texture *texture[17];

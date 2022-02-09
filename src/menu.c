@@ -1,14 +1,14 @@
 #include "globals.h"
 #include "map.h"
 #include "menu.h"
-#include "init.h"
+
 
 bool show_scores(APP *app, SDL_Texture *image_texture) {
 
     SDL_RenderClear(app->renderer);
+
     SDL_RenderCopy(app->renderer, image_texture, NULL, NULL);
     roundedBoxColor(app->renderer, 350, 200, SCREEN_WIDTH - 350, 500, 5, 0xddb03c30);
-
     stringRGBA(app->renderer, 400, 480, "press any key to return...", 255, 255, 255, 255);
 
     char users[17][100];
@@ -28,9 +28,9 @@ bool show_scores(APP *app, SDL_Texture *image_texture) {
     }
     fclose(file);
 
+    //sort the table
     int sort[17] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
     if (number_of_users > 1) {
-        //sort the table
         for (int i = 0; i < number_of_users - 1; i++) {
             for (int j = i; j < number_of_users; j++) {
                 if (coin[sort[i]] < coin[sort[j]]) {
@@ -49,37 +49,27 @@ bool show_scores(APP *app, SDL_Texture *image_texture) {
         sprintf(str, "%d", coin[sort[i]]);
         stringRGBA(app->renderer, 580, 220 + i * 15, str, 255, 255, 255, 255);
     }
+
     SDL_RenderPresent(app->renderer);
 
     SDL_Event event;
-    bool quit = false;
-    while (!quit) {
+    while (true) {
 
         SDL_Delay(30);
         SDL_PollEvent(&event);
 
         switch (event.type) {
             case SDL_QUIT:
-                die(app);
-                quit = true;
                 return 0;
-                break;
 
             case SDL_KEYDOWN:
-                quit = 1;
                 return 1;
         }
     }
 }
 
+
 bool present_first_screen(APP *app, SDL_Texture *image_texture) {
-
-    bool shift = false;
-    bool lock = false;
-    bool quit = false;
-    char ch[3] = {'\0'};
-    char text[100] = {'\0'};
-
 
     SDL_Color text_color = {0, 0, 0, 255};
     SDL_Color text_color_white = {255, 255, 255, 255};
@@ -119,33 +109,23 @@ bool present_first_screen(APP *app, SDL_Texture *image_texture) {
     }
 
 
-    //    app->font = TTF_OpenFont("../fonts/ariblk.ttf", 30);
-    //TTF_SizeText(app->font, text, &text_width, &text_height);
-    SDL_Rect name_rect;// = {(SCREEN_WIDTH - text_width) / 2, 250, text_width, text_height};
-
-    // = TTF_RenderText_Shaded(app->font, text, text_color, background_color);
-    // = SDL_CreateTextureFromSurface(app->renderer, surface3);
-
-    //    app->font = TTF_OpenFont("../fonts/ariblk.ttf", 30);
-    //    SDL_Surface *surface_small = TTF_RenderText_Shaded(app->font, text, text_color, background_color);
-    //    SDL_Texture *texture_small = SDL_CreateTextureFromSurface(app->renderer, surface_small);
-    //    if (texture3 == NULL) {
-    //        printf("null small 1 :(");
-    //        exit(-1);
-    //    }
-
-
-    bool render = 1;
     SDL_Event event;
+    SDL_Rect name_rect;
+    char text[100] = {'\0'};
+    char ch[3] = {'\0'};
+    bool shift = false;
+    bool lock = false;
+    bool quit = false;
+    bool render = true;
     while (!quit) {
         if (render) {
+
             SDL_RenderCopy(app->renderer, image_texture, NULL, NULL);
 
             roundedRectangleRGBA(app->renderer, 200, 250, 800, 300, 10, 0, 0, 0, 255);
 
             SDL_RenderCopy(app->renderer, app->texture[0], NULL, &textbox_huge);
             SDL_RenderCopy(app->renderer, app->texture[1], NULL, &textbox_medium);
-
 
             if (strlen(text) > 0) {
                 TTF_SizeText(app->font, text, &text_width, &text_height);
@@ -155,21 +135,16 @@ bool present_first_screen(APP *app, SDL_Texture *image_texture) {
                 name_rect.h = text_height;
                 app->surface[3] = TTF_RenderText_Shaded(app->font, text, text_color, background_color);
                 app->texture[3] = SDL_CreateTextureFromSurface(app->renderer, app->surface[3]);
-                if (app->texture[3] == NULL) {
-                    printf("null small 2 :(");
-                    exit(-1);
-                }
                 SDL_RenderCopy(app->renderer, app->texture[3], NULL, &name_rect);
             }
-
 
             roundedBoxColor(app->renderer, 400, 420, 600, 480, 20, 0xeeb03c30);
             SDL_RenderCopy(app->renderer, app->texture[2], NULL, &textbox_white);
 
             SDL_RenderPresent(app->renderer);
-
             render = 0;
         }
+
         SDL_Delay(10);
         SDL_PollEvent(&event);
 
@@ -211,7 +186,6 @@ bool present_first_screen(APP *app, SDL_Texture *image_texture) {
                 if (event.button.button == SDL_BUTTON_LEFT) {
                     int x_mouse, y_mouse;
                     SDL_GetMouseState(&x_mouse, &y_mouse);
-
                     if ((strlen(text) > 0) && (400 < x_mouse) && (x_mouse < 600) && (420 < y_mouse) &&
                         (y_mouse < 480)) {
                         quit = true;
@@ -219,11 +193,10 @@ bool present_first_screen(APP *app, SDL_Texture *image_texture) {
                 }
                 break;
         }
-
     }
 
 
-    //users files
+    //reading and writing on users files
     char str[100];
     int coin = 0;
     int number_of_users = 0;
@@ -258,58 +231,56 @@ bool present_first_screen(APP *app, SDL_Texture *image_texture) {
         fwrite(&number_of_users, sizeof(number_of_users), 1, file);
     }
     fclose(file);
-
-    printf("\n\nuser: %s\n", app->user);
-    printf("coin: %d\n\n\n", app->coin);
-
-
     return 1;
 }
 
 
 bool select_map(APP *app, POINT *array, int *number_of_points) {
 
-    SDL_Surface *image = IMG_Load("../media/sea3.jpg");
-    SDL_Texture *image_texture = SDL_CreateTextureFromSurface(app->renderer, image);
-    printf("\nloaded image -> ok\n");
+    //background -> app->surface[15]
+
     SDL_Color text_color_white = {255, 255, 255, 255};
     SDL_Color background_color = {0, 0, 0, 1};
     int text_width, text_height;
-    //    app->font = TTF_OpenFont("../fonts/ariblk.ttf", 25);
+
 
     TTF_SizeText(app->font, "next map", &text_width, &text_height);
     SDL_Rect rect1 = {(SCREEN_WIDTH - text_width) / 2 + 300, SCREEN_HEIGHT - 100, text_width, text_height};
     app->surface[4] = TTF_RenderText_Shaded(app->font, "next map", text_color_white, background_color);
     app->texture[4] = SDL_CreateTextureFromSurface(app->renderer, app->surface[4]);
-    printf("sec 1");
+
+
     TTF_SizeText(app->font, "previous map", &text_width, &text_height);
     SDL_Rect rect2 = {(SCREEN_WIDTH - text_width) / 2 - 320, SCREEN_HEIGHT - 100, text_width, text_height};
     app->surface[5] = TTF_RenderText_Shaded(app->font, "previous map", text_color_white, background_color);
     app->texture[5] = SDL_CreateTextureFromSurface(app->renderer, app->surface[5]);
-    printf("sec 2");
+
+
     TTF_SizeText(app->font, "generate random map", &text_width, &text_height);
     SDL_Rect rect3 = {(SCREEN_WIDTH - text_width) / 2, SCREEN_HEIGHT - 100, text_width, text_height};
     app->surface[6] = TTF_RenderText_Shaded(app->font, "generate random map", text_color_white, background_color);
     app->texture[6] = SDL_CreateTextureFromSurface(app->renderer, app->surface[6]);
-    printf("sec 3");
+
+
     TTF_SizeText(app->font, "START", &text_width, &text_height);
     SDL_Rect rect4 = {(SCREEN_WIDTH - text_width) / 2, SCREEN_HEIGHT - 180, text_width, text_height};
     app->surface[7] = TTF_RenderText_Shaded(app->font, "START", text_color_white, background_color);
     app->texture[7] = SDL_CreateTextureFromSurface(app->renderer, app->surface[7]);
-    printf("sec 4");
+
 
     SDL_Event event;
 
     char first_path[] = "../data/pre-made-maps/";
     char str[20] = {'\0'};
     int map_number = 1;
+    bool random_generated = false;
     bool free_and_exit = false;
     bool render = true;
-    bool random_generated = false;
     bool lock = false;
     bool quit = false;
 
     while (!quit) {
+
         SDL_Delay(10);
 
         if (render) {
@@ -345,7 +316,7 @@ bool select_map(APP *app, POINT *array, int *number_of_points) {
             }
 
             SDL_RenderClear(app->renderer);
-            SDL_RenderCopy(app->renderer, image_texture, NULL, NULL);
+            SDL_RenderCopy(app->renderer, app->texture[15], NULL, NULL);
 
             draw_the_map(app, array, *number_of_points);
 
@@ -369,8 +340,7 @@ bool select_map(APP *app, POINT *array, int *number_of_points) {
         SDL_PollEvent(&event);
         switch (event.type) {
             case SDL_QUIT:
-                free_and_exit = true;
-                break;
+                return 0;
 
             case SDL_MOUSEBUTTONUP:
                 lock = false;
@@ -382,104 +352,98 @@ bool select_map(APP *app, POINT *array, int *number_of_points) {
                     int x_mouse, y_mouse;
                     SDL_GetMouseState(&x_mouse, &y_mouse);
                     if (SCREEN_HEIGHT - 110 < y_mouse && y_mouse < SCREEN_HEIGHT - 50) {
-                        if (70 < x_mouse && x_mouse < 290 && map_number > 1) { //prev
+
+                        //previous button
+                        if (70 < x_mouse && x_mouse < 290 && map_number > 1) {
                             map_number--;
                             render = 1;
-                        } else if (330 < x_mouse && x_mouse < 670) { //generate
+
+
+                            //generate button
+                        } else if (330 < x_mouse && x_mouse < 670) {
                             *number_of_points = generate_random_map(array, app);
                             random_generated = true;
                             render = 1;
-                        } else if (720 < x_mouse && x_mouse < 880) { //next
+
+
+                            //next button
+                        } else if (720 < x_mouse && x_mouse < 880) {
                             map_number++;
                             render = 1;
                         }
 
+                        //start button
                     } else if (SCREEN_HEIGHT - 190 < y_mouse &&
                                y_mouse < SCREEN_HEIGHT - 130 &&
                                (SCREEN_WIDTH - text_width) / 2 - 20 < x_mouse &&
-                               x_mouse < (SCREEN_WIDTH + text_width) / 2 - 20) {    //start the game
+                               x_mouse < (SCREEN_WIDTH + text_width) / 2 - 20) {
                         quit = true;
                         break;
                     }
                 }
                 break;
         }
-
-        if (quit || free_and_exit) {
-
-            printf("\nall is right\n");
-            printf("again all is right\n");
-
-            SDL_FreeSurface(image);
-            SDL_DestroyTexture(image_texture);
-            printf("tammat\n");
-
-            quit = true;
-        }
     }
-    if (free_and_exit)
-        return 0;
-    else
-        return 1;
+    return 1;
 }
 
 
 bool
 present_second_screen(APP *app, SDL_Texture *image_texture, POINT *array, int *number_of_points, SOLDIER **soldiers,
                       POT *pot) {
-    SDL_RenderClear(app->renderer);
 
+    SDL_RenderClear(app->renderer);
 
     SDL_Color text_color_white = {255, 255, 255, 255};
     SDL_Color background_color = {0, 0, 0, 1};
     int text_width, text_height;
 
+
     TTF_SizeText(app->font, "NEW GAME", &text_width, &text_height);
     SDL_Rect rect1 = {(SCREEN_WIDTH - text_width) / 2, 205, text_width, text_height};
-    app->surface[8] = TTF_RenderText_Shaded(app->font, "NEW GAME", text_color_white, background_color);
-    app->texture[8] = SDL_CreateTextureFromSurface(app->renderer, app->surface[8]);
-
+    if (app->first_run) {
+        app->surface[8] = TTF_RenderText_Shaded(app->font, "NEW GAME", text_color_white, background_color);
+        app->texture[8] = SDL_CreateTextureFromSurface(app->renderer, app->surface[8]);
+    }
 
     TTF_SizeText(app->font, "LOAD GAME", &text_width, &text_height);
     SDL_Rect rect2 = {(SCREEN_WIDTH - text_width) / 2, 305, text_width, text_height};
-    app->surface[9] = TTF_RenderText_Shaded(app->font, "LOAD GAME", text_color_white, background_color);
-    app->texture[9] = SDL_CreateTextureFromSurface(app->renderer, app->surface[9]);
-    if (app->texture[9] == NULL) {
-        printf("texture 2 is null :(");
-        exit(-1);
+    if (app->first_run) {
+        app->surface[9] = TTF_RenderText_Shaded(app->font, "LOAD GAME", text_color_white, background_color);
+        app->texture[9] = SDL_CreateTextureFromSurface(app->renderer, app->surface[9]);
     }
 
-    printf("I still alive... 2");
     TTF_SizeText(app->font, "SCORES", &text_width, &text_height);
     SDL_Rect rect3 = {(SCREEN_WIDTH - text_width) / 2, 405, text_width, text_height};
-    app->surface[10] = TTF_RenderText_Shaded(app->font, "SCORES", text_color_white, background_color);
-    app->texture[10] = SDL_CreateTextureFromSurface(app->renderer, app->surface[10]);
-    if (app->texture[10] == NULL) {
-        printf("texture 3 is null :(");
-        exit(-1);
+    if (app->first_run) {
+        app->surface[10] = TTF_RenderText_Shaded(app->font, "SCORES", text_color_white, background_color);
+        app->texture[10] = SDL_CreateTextureFromSurface(app->renderer, app->surface[10]);
     }
 
-    printf("rendered seccessfully");
-
     SDL_Event event;
-    bool free_and_exit = false;
     bool render = true;
     bool quit = false;
     while (!quit) {
 
         if (render) {
+            //background
             SDL_RenderCopy(app->renderer, image_texture, NULL, NULL);
+
+            //buttons
             roundedBoxColor(app->renderer, 350, 180, SCREEN_WIDTH - 350, 270, 5, 0xddb03c30);
             roundedBoxColor(app->renderer, 350, 280, SCREEN_WIDTH - 350, 370, 5, 0xddb03c30);
             roundedBoxColor(app->renderer, 350, 380, SCREEN_WIDTH - 350, 470, 5, 0xddb03c30);
+            SDL_RenderCopy(app->renderer, app->texture[8], NULL, &rect1);
+            SDL_RenderCopy(app->renderer, app->texture[9], NULL, &rect2);
+            SDL_RenderCopy(app->renderer, app->texture[10], NULL, &rect3);
+
+            //display coins
             roundedBoxColor(app->renderer, 400, 50, SCREEN_WIDTH - 400, 100, 5, 0xddffffff);
             stringRGBA(app->renderer, 465, 70, "coin:", 0, 0, 0, 255);
             char str[5] = {'\0'};;
             sprintf(str, "%d", app->coin);
             stringRGBA(app->renderer, 515, 70, str, 0, 0, 0, 255);
-            SDL_RenderCopy(app->renderer, app->texture[8], NULL, &rect1);
-            SDL_RenderCopy(app->renderer, app->texture[9], NULL, &rect2);
-            SDL_RenderCopy(app->renderer, app->texture[10], NULL, &rect3);
+
             SDL_RenderPresent(app->renderer);
             render = false;
         }
@@ -489,7 +453,7 @@ present_second_screen(APP *app, SDL_Texture *image_texture, POINT *array, int *n
 
         switch (event.type) {
             case SDL_QUIT:
-                free_and_exit = true;
+                return 0;
                 break;
 
             case SDL_MOUSEBUTTONDOWN:
@@ -497,15 +461,18 @@ present_second_screen(APP *app, SDL_Texture *image_texture, POINT *array, int *n
                     int x_mouse, y_mouse;
                     SDL_GetMouseState(&x_mouse, &y_mouse);
                     if (350 < x_mouse && x_mouse < SCREEN_WIDTH - 350) {
-                        if (180 < y_mouse && y_mouse < 270) { //new game
+
+                        //new game button
+                        if (180 < y_mouse && y_mouse < 270) {
                             if (select_map(app, array, number_of_points)) {
                                 quit = true;
                                 break;
                             } else {
-                                free_and_exit = true;
-                                break;
+                                return 0;
                             }
-                        } else if (280 < y_mouse && y_mouse < 370) { //load game
+
+                            //load game button
+                        } else if (280 < y_mouse && y_mouse < 370) {
                             FILE *file = fopen("../data/data.dat", "rb");
                             if (file == NULL)
                                 break;
@@ -528,25 +495,20 @@ present_second_screen(APP *app, SDL_Texture *image_texture, POINT *array, int *n
                             }
                             fclose(file);
                             quit = true;
-
                         }
-                        if (380 < y_mouse && y_mouse < 470) { //scores
-//                          printf("haha\n");
-                            show_scores(app, image_texture);
-                            render = true;
+
+                        //scores button
+                        if (380 < y_mouse && y_mouse < 470) {
+                            if (show_scores(app, image_texture))
+                                render = true;
+                            else
+                                return 0;
                         }
                     }
                 }
                 break;
         }
-
-        if (quit || free_and_exit) {
-            quit = true;
-        }
     }
-    if (free_and_exit)
-        return 0;
-    else
-        return 1;
+    return 1;
 }
 
