@@ -357,3 +357,53 @@ void attack(APP*app, POINT*array,SOLDIER ** soldiers,int starting_point,int endi
     }
 }
 
+
+void AI(APP *app, POINT *array, int number_of_points, SOLDIER **soldiers, POT *pot) {
+    int max_point = 0;
+    int max_value = 0;
+    for (int i = 0; i < number_of_points; i++) {
+        if (array[i].ownership == 2 && array[i].value > max_value) {
+            max_value = array[i].value;
+            max_point = i;
+        }
+    }
+    int min_point = 0;
+    int min_value = 1000;
+    for (int i = 0; i < number_of_points; i++) {
+        if (array[i].ownership != 2 && array[i].value < min_value) {
+            min_value = array[i].value;
+            min_point = i;
+        }
+    }
+    attack(app, array, soldiers, max_point, min_point, pot);
+}
+
+
+int who_won(POINT *array, int number_of_points, SOLDIER **soldiers) {
+    int I_win = true;
+    int AI_win = true;
+    for (int i = 0; i < number_of_points; i++) {
+        if (array[i].ownership == 1)
+            AI_win = false;
+
+        if (array[i].ownership == 2)
+            I_win = false;
+    }
+    for (int i = 0; i < ATTACK_LIMIT; i++) {
+        if (soldiers[i] == NULL)
+            continue;
+
+        if (soldiers[i]->ownership == 1)
+            AI_win = false;
+
+        if (soldiers[i]->ownership == 2)
+            I_win = false;
+    }
+    if (I_win)
+        return 1;
+
+    if(AI_win)
+        return 2;
+
+    return -1;
+}

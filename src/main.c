@@ -9,57 +9,6 @@
 #endif
 
 
-void AI(APP *app, POINT *array, int number_of_points, SOLDIER **soldiers, POT *pot) {
-    int max_point = 0;
-    int max_value = 0;
-    for (int i = 0; i < number_of_points; i++) {
-        if (array[i].ownership == 2 && array[i].value > max_value) {
-            max_value = array[i].value;
-            max_point = i;
-        }
-    }
-    int min_point = 0;
-    int min_value = 1000;
-    for (int i = 0; i < number_of_points; i++) {
-        if (array[i].ownership != 2 && array[i].value < min_value) {
-            min_value = array[i].value;
-            min_point = i;
-        }
-    }
-    attack(app, array, soldiers, max_point, min_point, pot);
-}
-
-
-int who_won(POINT *array, int number_of_points, SOLDIER **soldiers) {
-    int I_win = true;
-    int AI_win = true;
-    for (int i = 0; i < number_of_points; i++) {
-        if (array[i].ownership == 1)
-            AI_win = false;
-
-        if (array[i].ownership == 2)
-            I_win = false;
-    }
-    for (int i = 0; i < ATTACK_LIMIT; i++) {
-        if (soldiers[i] == NULL)
-            continue;
-
-        if (soldiers[i]->ownership == 1)
-            AI_win = false;
-
-        if (soldiers[i]->ownership == 2)
-            I_win = false;
-    }
-    if (I_win)
-        return 1;
-
-    if(AI_win)
-        return 2;
-
-    return -1;
-}
-
-
 int main(int argc, char *argv[]) {
     bool I_win;
     bool AI_win;
@@ -78,11 +27,12 @@ int main(int argc, char *argv[]) {
         die(app);
     }
 
+
+
     //load background image
-    SDL_Surface *_image = IMG_Load("../media/sea3.jpg");
-    SDL_Delay(5);
-    SDL_Texture *_image_texture = SDL_CreateTextureFromSurface(app->renderer, _image);
-    if (_image_texture == NULL) {
+    app->surface[15] = IMG_Load("../media/sea3.jpg");
+    app->texture[15] = SDL_CreateTextureFromSurface(app->renderer, app->surface[15]);
+    if (app->texture[15] == NULL) {
         printf("can not load back ground image :( ");
         die(app);
     }
@@ -94,51 +44,35 @@ int main(int argc, char *argv[]) {
 
 
     //load island image
-    SDL_Surface *image = IMG_Load("../media/island.jpg");
-    SDL_Texture *image_texture = SDL_CreateTextureFromSurface(app->renderer, image);
-    if (image_texture == NULL) {
+    app->surface[16] = IMG_Load("../media/island.jpg");
+    app->texture[16] = SDL_CreateTextureFromSurface(app->renderer, app->surface[16]);
+    if (app->texture[16] == NULL) {
         printf("can not load first image :( ");
-        SDL_FreeSurface(_image);
-        SDL_DestroyTexture(_image_texture);
         die(app);
     }
 
-    if (!present_first_screen(app, image_texture) ||/**/
-        !present_second_screen(app, image_texture, array, &number_of_points, soldiers)) {
-        SDL_FreeSurface(_image);
-        SDL_DestroyTexture(_image_texture);
-        SDL_FreeSurface(image);
-        SDL_DestroyTexture(image_texture);
+    if (!present_first_screen(app, app->texture[16]) ||/**/
+    !present_second_screen(app, app->texture[16], array, &number_of_points, soldiers)) {
+
         die(app);
     }
 
-    SDL_FreeSurface(image);
-    SDL_DestroyTexture(image_texture);
 
     //load potions
-    SDL_Surface *pot1_surf = IMG_Load("../media/purple.png");
-    SDL_Texture *pot1_tex = SDL_CreateTextureFromSurface(app->renderer, pot1_surf);
-    SDL_Surface *pot2_surf = IMG_Load("../media/sam.png");
-    SDL_Texture *pot2_tex = SDL_CreateTextureFromSurface(app->renderer, pot2_surf);
-    SDL_Surface *pot3_surf = IMG_Load("../media/red.png");
-    SDL_Texture *pot3_tex = SDL_CreateTextureFromSurface(app->renderer, pot3_surf);
-    SDL_Surface *pot4_surf = IMG_Load("../media/yellow.png");
-    SDL_Texture *pot4_tex = SDL_CreateTextureFromSurface(app->renderer, pot4_surf);
-
-
-
-    ///////////////////////////////////////////////////////
-    int a = random_between(0, number_of_points - 1);
-    int b = random_between(0, number_of_points - 1) % (number_of_points - 1) + 1;
-    pot_rect.x = (array[a].x + array[b].x) / 2 - 10;
-    pot_rect.y = (array[a].y + array[b].y) / 2 - 10;
-    pot_rect.w = pot_rect.h = 50;
-    ////////////////////////////////////////////////////////
-
+    app->surface[11] = IMG_Load("../media/purple.png");
+    app->texture[11] = SDL_CreateTextureFromSurface(app->renderer, app->surface[11]);
+    app->surface[12] = IMG_Load("../media/sam.png");
+    app->texture[12] = SDL_CreateTextureFromSurface(app->renderer, app->surface[12]);
+    app->surface[13] = IMG_Load("../media/red.png");
+    app->texture[13] = SDL_CreateTextureFromSurface(app->renderer, app->surface[13]);
+    app->surface[14] = IMG_Load("../media/yellow.png");
+    app->texture[14] = SDL_CreateTextureFromSurface(app->renderer, app->surface[14]);
 
 
     POT pot = {.player1_pot_number = -1, .player2_pot_number = -1};
 
+    char coin_str[5];
+    sprintf(coin_str, "%d", app->coin);
 
     SDL_Event event;
     bool quit = false;
@@ -154,7 +88,7 @@ int main(int argc, char *argv[]) {
             case SDL_MOUSEBUTTONDOWN:
                 if (event.button.button == SDL_BUTTON_LEFT && starting_point == -1) {
                     int point_number = witch_point(event.button.x, event.button.y, array, number_of_points);
-                    if (array[point_number].ownership == 1 || array[point_number].ownership == 2) {
+                    if (array[point_number].ownership == 1 /*|| array[point_number].ownership == 2 /**/) {
                         starting_point = point_number;
                     }
                 }
@@ -187,19 +121,6 @@ int main(int argc, char *argv[]) {
                 break;
         }
 
-
-        switch (who_won(array, number_of_points, soldiers)) {
-            case 1:
-                //TODO you win
-                printf("I won!");
-                break;
-            case 2:
-                //TODO computer won!
-                printf("You lost!");
-                break;
-            default:
-                break;
-        }
 
 
         //AI
@@ -238,7 +159,7 @@ int main(int argc, char *argv[]) {
 
         //render background image
         SDL_RenderClear(app->renderer);
-        SDL_RenderCopy(app->renderer, _image_texture, NULL, NULL);
+        SDL_RenderCopy(app->renderer, app->texture[15], NULL, NULL);
 
         //render the map
         draw_the_map(app, array, number_of_points);
@@ -248,16 +169,16 @@ int main(int argc, char *argv[]) {
         if (pot_number != -1) {
             switch (pot_number) {
                 case 1:
-                    SDL_RenderCopy(app->renderer, pot1_tex, NULL, &pot_rect);
+                    SDL_RenderCopy(app->renderer, app->texture[11], NULL, &pot_rect);
                     break;
                 case 2:
-                    SDL_RenderCopy(app->renderer, pot2_tex, NULL, &pot_rect);
+                    SDL_RenderCopy(app->renderer, app->texture[12], NULL, &pot_rect);
                     break;
                 case 3:
-                    SDL_RenderCopy(app->renderer, pot3_tex, NULL, &pot_rect);
+                    SDL_RenderCopy(app->renderer, app->texture[13], NULL, &pot_rect);
                     break;
                 case 4:
-                    SDL_RenderCopy(app->renderer, pot4_tex, NULL, &pot_rect);
+                    SDL_RenderCopy(app->renderer, app->texture[14], NULL, &pot_rect);
                     break;
             }
         }
@@ -285,7 +206,7 @@ int main(int argc, char *argv[]) {
             pot_number = random_between(1, 4);
         }
 
-        render_active_potions(app, &pot, pot1_tex, pot2_tex, pot3_tex, pot4_tex);
+        render_active_potions(app, &pot, app->texture[11], app->texture[12], app->texture[13], app->texture[14]);
 
         //render soldiers
         move(app, array, soldiers, pot_rect, &pot_number, &pot);
@@ -297,17 +218,47 @@ int main(int argc, char *argv[]) {
             arrow(app, array[starting_point].x, array[starting_point].y, x_mouse, y_mouse, 15, 0xFFaaabaa);
         }
 
+
+        stringRGBA(app->renderer, SCREEN_WIDTH / 2 - 80, 20, coin_str, 0, 0, 0, 255);
         SDL_RenderPresent(app->renderer);
         SDL_Delay(5);
+
+
+        switch (who_won(array, number_of_points, soldiers)) {
+            case 1: //you win
+                printf("I won!");
+                app->coin += 10;
+                quit = true;
+                break;
+            case 2: //you lost
+                //TODO computer won!
+                printf("You lost!");
+                app->coin -= 10;
+                quit = true;
+                break;
+            default:
+                break;
+        }
     }
 
+
+    int number_of_users = 0;
+    int coin;
+    char str[100];
+    FILE *file = fopen("../data/users.dat", "rb+");
+    fread(&number_of_users, sizeof(number_of_users), 1, file);
+    for (int i = 0; i < number_of_users; i++) {
+        fread(str, 1, 100, file);
+        if (strcmp(str, app->user) == 0) {
+            fseek(file, sizeof(int) + 100 + (i * (100 + sizeof(int))), SEEK_SET);
+            fwrite(&app->coin, sizeof(int), 1, file);
+            break;
+        }
+        fread(&coin, sizeof(int), 1, file);
+    }
+    fclose(file);
+
     //free memory and exit
-    SDL_FreeSurface(_image);
-    SDL_DestroyTexture(_image_texture);
-    SDL_FreeSurface(pot1_surf);
-    SDL_FreeSurface(pot2_surf);
-    SDL_FreeSurface(pot3_surf);
-//    SDL_FreeSurface(pot4_surf);
     die(app);
 }
 

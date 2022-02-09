@@ -36,6 +36,13 @@ bool init(APP *app) {
 }
 
 void die(APP *app) {
+    //free memory and exit
+    for (int i = 0; i < 17; i++) {
+        if (app->texture[i] != NULL)
+            SDL_DestroyTexture(app->texture[i]);
+        if (app->surface[i] != NULL)
+            SDL_FreeSurface(app->surface[i]);
+    }
     SDL_DestroyRenderer(app->renderer);
     SDL_DestroyWindow(app->window);
     IMG_Quit();

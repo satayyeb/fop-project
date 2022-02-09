@@ -36,6 +36,8 @@ typedef struct APP {
     TTF_Font *font;
     char user[100];
     int coin;
+    SDL_Texture *texture[17];
+    SDL_Surface *surface[17];
 } APP;
 
 typedef struct COORDINATE {
