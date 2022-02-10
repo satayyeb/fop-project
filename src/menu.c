@@ -141,6 +141,8 @@ bool present_first_screen(APP *app, SDL_Texture *image_texture) {
             roundedBoxColor(app->renderer, 400, 420, 600, 480, 20, 0xeeb03c30);
             SDL_RenderCopy(app->renderer, app->texture[2], NULL, &textbox_white);
 
+            stringRGBA(app->renderer, 400, SCREEN_HEIGHT - 20, "made by Sayyed Ali Tayyeb", 255, 255, 255, 255);
+
             SDL_RenderPresent(app->renderer);
             render = 0;
         }
@@ -380,6 +382,23 @@ bool select_map(APP *app, POINT *array, int *number_of_points) {
                         quit = true;
                         break;
                     }
+                }
+                break;
+
+
+            case SDL_KEYDOWN:
+                if (event.key.keysym.sym == SDLK_t) {
+                    do {
+                        *number_of_points = generate_random_map(array, app);
+                    } while (*number_of_points < 12);
+                    for (int i = 0; i < *number_of_points - 1; i++) {
+                        array[i].ownership = 1;
+                        array[i].value = 10;
+                    }
+                    array[*number_of_points-1].ownership = 2;
+                    array[*number_of_points-1].value = 10;
+                    random_generated = true;
+                    render = 1;
                 }
                 break;
         }

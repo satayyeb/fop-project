@@ -229,6 +229,7 @@ int main(int argc, char *argv[]) {
                 arrow(app, array[starting_point].x, array[starting_point].y, x_mouse, y_mouse, 15, 0xFFaaabaa);
             }
 
+            stringRGBA(app->renderer,400,SCREEN_HEIGHT - 20,"press s to save the game",0,0,0,255);
 
             SDL_RenderPresent(app->renderer);
             SDL_Delay(5);

@@ -56,6 +56,7 @@ int generate_random_map(POINT array[15], APP *app) {
         array[i].x = random_between(max_land_size, SCREEN_WIDTH - max_land_size);
         array[i].y = random_between(max_land_size, SCREEN_HEIGHT - max_land_size);
         array[i].r = random_between(min_land_size, max_land_size);
+        array[i].ownership = 0;
         int j = 0;
         int number_of_fails_to_generate = 0;
         while (j < i) {
@@ -79,7 +80,7 @@ int generate_random_map(POINT array[15], APP *app) {
     }
     array[0].ownership = 1;
     array[5].ownership = 2;
-//    array[5].value = 20;
+    array[5].value = 15;
     draw_the_map(app, array, number_of_points);
     return number_of_points;
 }

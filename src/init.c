@@ -43,6 +43,7 @@ void die(APP *app) {
         if (app->surface[i] != NULL)
             SDL_FreeSurface(app->surface[i]);
     }
+    TTF_CloseFont(app->font);
     SDL_DestroyRenderer(app->renderer);
     SDL_DestroyWindow(app->window);
     IMG_Quit();
