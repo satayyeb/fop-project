@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
         //at the start there are not an active potion
         pot.player1_pot_number = pot.player2_pot_number = -1;
 
-        if (!present_second_screen(app, app->texture[16], array, &number_of_points, soldiers,&pot)) {
+        if (!present_second_screen(app, app->texture[16], array, &number_of_points, soldiers, &pot)) {
             die(app);
         }
 
@@ -230,7 +230,7 @@ int main(int argc, char *argv[]) {
                 arrow(app, array[starting_point].x, array[starting_point].y, x_mouse, y_mouse, 15, 0xFFaaabaa);
             }
 
-            stringRGBA(app->renderer,400,SCREEN_HEIGHT - 20,"press s to save the game",0,0,0,255);
+            stringRGBA(app->renderer, 400, SCREEN_HEIGHT - 20, "press s to save the game", 0, 0, 0, 255);
 
             SDL_RenderPresent(app->renderer);
             SDL_Delay(5);
