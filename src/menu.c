@@ -505,8 +505,6 @@ present_second_screen(APP *app, SDL_Texture *image_texture, POINT *array, int *n
                             for (int i = 0; i < ATTACK_LIMIT; i++) {
                                 fread(&count, sizeof(count), 1, file);
                                 if (feof(file)) {
-                                    fclose(file);
-                                    quit = true;
                                     break;
                                 }
                                 soldiers[i] = calloc(count, sizeof(SOLDIER));
