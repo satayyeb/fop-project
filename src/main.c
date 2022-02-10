@@ -30,6 +30,7 @@ int main(int argc, char *argv[]) {
 
     app->first_run = true;
 
+
     //load background image (sea and beach)
     app->surface[15] = IMG_Load("../media/sea3.jpg");
     app->texture[15] = SDL_CreateTextureFromSurface(app->renderer, app->surface[15]);
