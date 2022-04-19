@@ -130,3 +130,4 @@ dkms.conf
 /.idea/
 data/data.dat
 data/users.dat
+cmake-*
