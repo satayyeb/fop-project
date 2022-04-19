@@ -128,3 +128,5 @@ Mkfile.old
 dkms.conf
 
 /.idea/
+data/data.dat
+data/users.dat
