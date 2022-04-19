@@ -8,11 +8,11 @@
 
 ## Download Build
 
-- In windows, download [windows-64bit-build.zip](https://github.com/satayyeb/fop-project/blob/main/windows-64bit-build.zip)
-- In Linux, download [Linux_Build.zip](https://github.com/satayyeb/fop-project/blob/main/Linux_Build.zip)
+- For windows download [windows-64bit-build.zip](https://github.com/satayyeb/fop-project/blob/main/windows-64bit-build.zip)
+- For Linux download [Linux_Build.zip](https://github.com/satayyeb/fop-project/blob/main/Linux_Build.zip)
 
 ## Build the project
-### do this steps:
+### Do these steps:
 - Clone or download the repository
 - extract the sdl2.zip file. This file contains a full backup of the SDL2 library
 - replace the extracted file with sdl2 folder in the project directory
