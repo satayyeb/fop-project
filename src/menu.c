@@ -496,6 +496,9 @@ present_second_screen(APP *app, SDL_Texture *image_texture, POINT *array, int *n
                             if (file == NULL)
                                 break;
                             fread(&pot->player1_pot_number, sizeof(int), 1, file);
+                            if(feof(file)){
+                                break;
+                            }
                             fread(&pot->player2_pot_number, sizeof(int), 1, file);
                             fread(&pot->player1_counter, sizeof(int), 1, file);
                             fread(&pot->player2_counter, sizeof(int), 1, file);
