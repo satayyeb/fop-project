@@ -1,6 +1,6 @@
-# Fudumentals Of Programming Project 
+# Fundamentals Of Programming Project (Island Soldiers)
 
-## Island Soldiers
+## Description
 
 - 💻 Implementation of [State.io game](https://play.google.com/store/apps/details?id=io.state.fight&hl=en&gl=US)
 - 🎮 A simple strategic game
