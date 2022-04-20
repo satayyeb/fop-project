@@ -8,7 +8,7 @@
 
 ## Download Build
 
-- For Linux download [Linux_Build.zip](https://github.com/satayyeb/fop-project/blob/main/Linux_Build.zip)
+- For Linux download [linux-build.zip](https://github.com/satayyeb/fop-project/blob/main/linux-build.zip)
 - For Windows download [windows-64bit-build.zip](https://github.com/satayyeb/fop-project/blob/main/windows-64bit-build.zip)
 
 ## Build the project (Linux)
