@@ -131,3 +131,4 @@ dkms.conf
 data/data.dat
 data/users.dat
 cmake-*
+build*
