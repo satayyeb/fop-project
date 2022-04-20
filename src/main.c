@@ -264,6 +264,7 @@ int main(int argc, char *argv[]) {
             }
             fread(&coin, sizeof(int), 1, file);
         }
+        fclose(file);
 
         //free soldiers
         for (int i = 0; i < ATTACK_LIMIT; i++) {

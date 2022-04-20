@@ -205,9 +205,13 @@ bool present_first_screen(APP *app, SDL_Texture *image_texture) {
     bool end = false;
     FILE *file = fopen("../data/users.dat", "rb+");
     if (file == NULL) {
-        printf("can not open users file");
+        printf("Err: can not open users file");
+        number_of_users = 0;
+        fclose(file);
+        file = fopen("../data/users.dat", "wb+");
+    }else{
+        fread(&number_of_users, sizeof(number_of_users), 1, file);
     }
-    fread(&number_of_users, sizeof(number_of_users), 1, file);
     for (int i = 0; i < number_of_users; i++) {
         fread(str, 1, 100, file);
         fread(&coin, sizeof(int), 1, file);
@@ -220,9 +224,6 @@ bool present_first_screen(APP *app, SDL_Texture *image_texture) {
         }
     }
     if (!end) {
-        if (number_of_users == 0) {
-            fseek(file, sizeof(int), SEEK_SET);
-        }
         strcpy(app->user, text);
         app->coin = 100;
         fseek(file, sizeof(int) + (number_of_users * (100 + sizeof(app->coin))), SEEK_SET);
