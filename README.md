@@ -8,16 +8,34 @@
 
 ## Download Build
 
-- In windows, download [windows-64bit-build.zip](https://github.com/satayyeb/fop-project/blob/main/windows-64bit-build.zip)
-- In Linux, download [Linux_Build.zip](https://github.com/satayyeb/fop-project/blob/main/Linux_Build.zip)
+- For Linux download [Linux_Build.zip](https://github.com/satayyeb/fop-project/blob/main/Linux_Build.zip)
+- For Windows download [windows-64bit-build.zip](https://github.com/satayyeb/fop-project/blob/main/windows-64bit-build.zip)
 
-## Build the project
-### do this steps:
-- Clone or download the repository
-- extract the sdl2.zip file. This file contains a full backup of the SDL2 library
-- replace the extracted file with sdl2 folder in the project directory
-- Why should I do this? 🤨
-- beacuse the File sdl2/sdl2-ttf-lib/libSDL2_ttf.a is 59.57 MB. and not included in sdl2 folder, and you should take it from the ziped file.
+## Build the project (Linux)
+Run these commands:
+```
+mkdir build1
+cd build1
+cmake ../
+cmake --build .
+```
+
+## Build the project (Windows)
+- Make sure [*cmake*](https://cmake.org/download/) and [*make*](https://stackoverflow.com/questions/32127524/how-to-install-and-use-make-in-windows) is installed in your system.
+
+
+- Generate **CMakeCache.txt** with **cmake-gui** once.
+
+![alt text](https://s6.uupload.ir/files/f1_3xbo.jpg)
+![alt text](https://s6.uupload.ir/files/f2_rf64.jpg)
+![alt text](https://s6.uupload.ir/files/f4_5vcn.jpg)
+
+- Run this command every time you want to build the project:
+```
+cd build-test
+make -f Makefile
+```
+- To run the game (exe file) on Windows, you need to copy the dynamic libraries (or dll files) to the "build" folder where the exe is located. The dll files are in sdl2 directory.
 
 ## Some pictures of the game
 ![alt text](https://s6.uupload.ir/files/1_zu.jpg)
