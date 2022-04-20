@@ -39,7 +39,7 @@ cmake --build .
   ```
   cmake --build .
   ```
-- To run the game (exe file) on Windows, you need to copy the dynamic libraries (or dll files) to the "build-test" folder where the exe is located. The dll files are in sdl2 directory.
+- To run the game (exe file) on Windows, you need to copy the dynamic libraries (or dll files) to the "build-test" folder where the exe is located. The dll files are in "./sdl2/necessary dll files" directory. Copy them where the exe file is located.
 
 ## CMake-GUI configuration pictures
 
